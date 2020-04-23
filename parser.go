@@ -1,0 +1,520 @@
+package main
+
+import (
+	"fmt"
+	"bytes"
+	"strings"
+	"unicode"
+)
+
+var DepTree = make(map[string][]string)
+
+type Token_Type int
+
+const (
+	H1 Token_Type = iota
+	H2
+	H3
+
+	HEADINGS
+
+	IMAGE
+	TOKEN
+	VIDEO
+	QUOTE
+	IMPORT
+	SNIPPET
+	DIVIDER
+	FUNCTION
+	PARAGRAPH
+	LIST_ENTRY
+	BLOCK_CODE
+	BLOCK_START
+	BLOCK_CLOSE
+	CODE_GUTS
+	HTML_SNIPPET
+
+	ERROR
+
+	// keep at end
+	IF_STATEMENT
+	IF_SCOPE_PROJECT
+	IF_SCOPE_PARENT
+	IF_SCOPE_PAGE
+)
+
+type Token struct {
+	Type Token_Type
+	Text string
+	Line int
+	Vars map[string]string
+}
+
+var token_names = [...]string {
+	"h1",
+	"h2",
+	"h3",
+
+	"headings",
+
+	"image",
+	"token",
+	"video",
+	"quote",
+	"import",
+	"snippet",
+	"divider",
+	"function",
+	"paragraph",
+	"list_entry",
+	"block_code",
+	"block_start",
+	"block_close",
+	"code_guts",
+	"html_snippet",
+
+	"error",
+
+	"if_statement",
+	"if_scope_project",
+	"if_scope_parent",
+	"if_scope_page",
+}
+
+func (t Token_Type) String() string {
+	return token_names[t]
+}
+
+
+
+type Token_List struct {
+	Tokens []*Token
+	Pos    int
+}
+
+func (tree *Token_List) peek() *Token {
+	return tree.Tokens[tree.Pos-1]
+}
+
+func (tree *Token_List) lookahead() *Token {
+	if tree.Pos == len(tree.Tokens) {
+		return nil
+	}
+	return tree.Tokens[tree.Pos]
+}
+
+func (tree *Token_List) next() *Token {
+	if tree.Pos == len(tree.Tokens) {
+		return nil
+	}
+	tree.Pos++
+	return tree.peek()
+}
+
+
+
+func simple_oko_token(input []rune, r rune) ([]rune, []rune, bool) {
+	if input[0] == r {
+		input = input[1:]
+		input = consume_whitespace(input)
+
+		text := extract_to_newline(input)
+		input = input[len(text):]
+
+		return text, input, true
+	}
+	return nil, nil, false
+}
+
+func compare_arbitrary_runes(input []rune, compare string) (int, bool) {
+	test := []rune(compare)
+	for i, r := range test {
+		if r != input[i] {
+			return 0, false
+		}
+	}
+	return len(test), true
+}
+
+func extract_identifier(input []rune) []rune {
+	var extract []rune
+	for _, r := range input {
+		if !(unicode.IsLetter(r) || r == '_' || r == '.') { // @todo variable semantics
+			return extract
+		}
+		extract = append(extract, r)
+	}
+	return nil
+}
+
+func extract_to_newline(input []rune) []rune {
+	return input[0:jump_to_next_newline(input)]
+}
+
+func jump_to_next_newline(input []rune) int {
+		c := 0
+		for _, r := range input {
+			if r == '\n' || r == '\r' {
+				return c
+			}
+			c++
+		}
+		return c
+}
+
+func jump_to_next_char(input []rune, test rune) int {
+	c := 0
+	for _, r := range input {
+		if r == test {
+			return c
+		}
+		c++
+	}
+	return c
+}
+
+func consume_whitespace(input []rune) []rune {
+	for i, r := range input {
+		if !unicode.IsSpace(r) {
+			return input[i:]
+		}
+	}
+	return input
+}
+
+func count_newlines(input []rune) int {
+	c := 0
+	for _, r := range input {
+		if r == '\n' || r == '\r' {
+			c++
+		}
+	}
+	return c + 1
+}
+
+func count_sequential_runes(input []rune, check rune) int {
+	c := 0
+	for _, r := range input {
+		if r != check {
+			return c
+		}
+		c++
+	}
+	return c
+}
+
+
+// block helpers
+func pop(a []*Token) []*Token {
+	if len(a) <= 0 {
+		return a
+	}
+	return a[0:len(a)-1]
+}
+
+func get(a []*Token) (*Token, bool) {
+	if len(a) > 0 {
+		return a[len(a)-1], true
+	}
+	return nil, false
+}
+
+
+
+// @note block open/close balance checking pass?
+func parser(page *Page, source []byte) (*Token_List, bool) {
+	input := bytes.Runes(source)
+
+	total_lines := count_newlines(input)
+
+	line_no := func(input []rune) int {
+		return total_lines - count_newlines(input) + 1
+	}
+
+	var list []*Token
+	var active_block []*Token
+
+	for len(input) > 0 {
+		input = consume_whitespace(input)
+
+		if len(input) == 0 {
+			break
+		}
+
+		if input[0] == '}' {
+			input = input[1:]
+
+			list = append(list, &Token{BLOCK_CLOSE, "", line_no(input), nil})
+
+			active_block = pop(active_block)
+
+			continue
+		}
+
+		// single-line comments
+		if c := count_sequential_runes(input, '/'); c >= 2 {
+			input = input[jump_to_next_newline(input):]
+			continue
+		}
+
+		if input[0] == '#' {
+			c     := count_sequential_runes(input, '#')
+			input  = consume_whitespace(input[c:])
+			text  := extract_to_newline(input)
+			input  = input[len(text):]
+
+			var heading Token_Type
+
+			switch c {
+				case 1: heading = H1
+				case 2: heading = H2
+				case 3: heading = H3
+			}
+
+			list = append(list, &Token{heading, string(text), line_no(input), nil})
+			continue
+		}
+
+		if text, update_input, ok := simple_oko_token(input, '%'); ok {
+			input = update_input
+			list = append(list, &Token{IMAGE, string(text), line_no(input), nil})
+			continue
+		}
+		if text, update_input, ok := simple_oko_token(input, '@'); ok {
+			input = update_input
+			list = append(list, &Token{VIDEO, string(text), line_no(input), nil})
+			continue
+		}
+		if text, update_input, ok := simple_oko_token(input, '+'); ok {
+			input  = update_input
+			t     := string(text)
+
+			DepTree[t] = append(DepTree[strings.SplitN(t, " ", 2)[0]], page.ID)
+
+			list = append(list, &Token{IMPORT, t, line_no(input), nil})
+			continue
+		}
+		if text, update_input, ok := simple_oko_token(input, '>'); ok {
+			input  = update_input
+			t     := string(text)
+
+			DepTree[t] = append(DepTree["snip_" + t], page.ID)
+
+			list = append(list, &Token{SNIPPET, t, line_no(input), nil})
+			continue
+		}
+		if text, update_input, ok := simple_oko_token(input, '&'); ok {
+			input = update_input
+			list = append(list, &Token{TOKEN, string(text), line_no(input), nil})
+			continue
+		}
+		if text, update_input, ok := simple_oko_token(input, 'ø'); ok {
+			input = update_input
+			list = append(list, &Token{FUNCTION, string(text), line_no(input), nil})
+			continue
+		}
+		if text, update_input, ok := simple_oko_token(input, '*'); ok {
+			input = update_input
+			list = append(list, &Token{HTML_SNIPPET, string(text), line_no(input), nil})
+			continue
+		}
+		if text, update_input, ok := simple_oko_token(input, '$'); ok {
+			input = update_input
+			list = append(list, &Token{QUOTE, string(text), line_no(input), nil})
+			continue
+		}
+
+		if input[0] == '-' {
+			if count_sequential_runes(input, '-') == 3 {
+				input = input[3:]
+				list = append(list, &Token{DIVIDER, "", line_no(input), nil})
+				continue
+			}
+
+			if text, update_input, ok := simple_oko_token(input, '-'); ok {
+				input = update_input
+				list = append(list, &Token{LIST_ENTRY, string(text), line_no(input), nil})
+				continue
+			}
+		}
+
+		// variables AND blocks
+		ident := extract_identifier(input)
+
+		if len(ident) > 0 {
+			test_input := consume_whitespace(input[len(ident):])
+
+			// we are a variable
+			if test_input[0] == ':' {
+				test_input = consume_whitespace(test_input[1:])
+
+				value := extract_to_newline(test_input)
+				k, v  := string(ident), string(value)
+
+				input = test_input[len(value):] // overwrite input w changes
+
+				// check if submap variable
+				if strings.Contains(k, ".") {
+					n := strings.Split(k, ".")
+
+					switch n[0] {
+						case "meta":
+							page.Meta[n[1]] = v
+							page.Vars[k] = v
+					}
+
+					continue
+				}
+
+				switch k {
+					case "script":
+						page.Script = append(page.Script, v)
+
+					default:
+						if a, ok := get(active_block); ok {
+							a.Vars[k] = v
+						} else {
+							page.Vars[k] = v
+						}
+				}
+
+				continue
+			}
+
+			c := jump_to_next_newline(test_input)
+
+			// we are a block
+			if test_input[c-1] == '{' {
+				str_ident := string(ident)
+
+				if str_ident == "code" { // @note string comp????
+					lang := string(extract_identifier(test_input))
+
+					if len(lang) == 0 {
+						lang = "code"
+					}
+
+					test_input = test_input[c+1:]
+					// subtract from line_no  ^ because we sliced it off just above
+					n := line_no(test_input) - 1
+
+					list = append(list, &Token{BLOCK_CODE, lang, n, nil})
+
+					var count int
+					var last  rune
+
+					for _, r := range test_input {
+						if r == '}' && last != '\\' {
+							break
+						}
+						last = r
+						count++
+					}
+
+					content := test_input[0:count]
+
+					var ws_count int
+
+					for i := len(content); i > 0; i-- {
+						if !unicode.IsSpace(content[i-1]) {
+							break
+						}
+						ws_count++
+					}
+
+					content = content[0:count-ws_count]
+
+					list = append(list, &Token{CODE_GUTS, string(content), n+1, nil})
+
+					input = test_input[count+1:]
+
+					continue
+				}
+
+				// if statement
+				if str_ident == "if" {
+					if_token          := Token{}
+					if_input          := test_input
+					found_valid_scope := false
+
+					if count, ok := compare_arbitrary_runes(if_input, "project"); ok {
+						if_input = consume_whitespace(if_input[count:])
+						found_valid_scope = true
+
+						if_token.Type = IF_SCOPE_PROJECT
+
+					} else if count, ok := compare_arbitrary_runes(if_input, "parent"); ok {
+						if_input = consume_whitespace(if_input[count:])
+						found_valid_scope = true
+
+						if_token.Type = IF_SCOPE_PARENT
+
+					} else if count, ok := compare_arbitrary_runes(if_input, "page"); ok {
+						if_input = consume_whitespace(if_input[count:])
+						found_valid_scope = true
+
+						if_token.Type = IF_SCOPE_PAGE
+					}
+
+					if !found_valid_scope {
+						ident := extract_identifier(if_input)
+						list = append(list, &Token{ERROR, "no such scope " + string(ident), line_no(if_input), nil})
+						continue
+					}
+
+					if if_input[0] == '.' {
+						if_input = if_input[1:]
+					} else {
+						list = append(list, &Token{ERROR, "missing '.' separator in if-statement", line_no(if_input), nil})
+						continue
+					}
+
+					ident := extract_identifier(if_input)
+
+					if len(ident) > 0 {
+						if_input = if_input[len(ident):]
+					} else {
+						list = append(list, &Token{ERROR, "no variable in if-statement", line_no(if_input), nil})
+						continue
+					}
+
+					if_token.Text = string(ident)
+					if_token.Line = line_no(if_input)
+					if_token.Vars = make(map[string]string)
+
+					list = append(list, &if_token)
+					active_block = append(active_block, &if_token)
+
+				} else {
+					b := &Token{BLOCK_START, str_ident, line_no(test_input), nil}
+					b.Vars = make(map[string]string)
+					list = append(list, b)
+					active_block = append(active_block, b)
+				}
+
+				input = test_input[c:] // replace changes
+
+				continue
+			}
+		}
+
+		// PARAGRAPH
+		text := extract_to_newline(input)
+		list  = append(list, &Token{PARAGRAPH, string(text), line_no(input), nil})
+		input = input[len(text):]
+	}
+
+	if name, ok := page.Vars["plate"]; ok {
+		name = "plate_" + name
+		DepTree[name] = append(DepTree[name], page.ID)
+	}
+
+	return &Token_List{list, 0}, false
+}
+
+// dev
+func print_syntax_tree(list *Token_List) {
+	for _, entry := range list.Tokens {
+		fmt.Println(entry)
+	}
+}
