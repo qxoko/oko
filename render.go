@@ -165,6 +165,10 @@ func recurse_render(the_page *Page, active_block *Token) string {
 
 				continue
 
+			case VIDEO:
+				content.WriteString(video(tok.Text))
+				continue
+
 			case HTML_SNIPPET:
 				content.WriteString(tok.Text)
 				continue
