@@ -85,8 +85,6 @@ func render(p *Page) {
 
 	write_file(p.OutputPath, content)
 
-	fmt.Println("page: ", p.SourcePath)
-
 	p.IsRendered = true
 }
 
@@ -113,11 +111,10 @@ func recurse_render(the_page *Page, active_block *Token) string {
 
 		switch tok.Type {
 			case ERROR:
-				panic(tok.Text)
+				render_error(the_page, tok, "parser error")
 
 			case FUNCTION:
-				fmt.Printf("%s L%s: unsupported function", the_page.ID, tok.Line)
-				panic("functions not supported!")
+				render_error(the_page, tok, "functions unsupported")
 
 			case LIST_ENTRY:
 				var list_buffer strings.Builder
@@ -159,7 +156,7 @@ func recurse_render(the_page *Page, active_block *Token) string {
 					if p, ok := PageList[n[0]]; ok {
 						content.WriteString(mapmap(v, p.Vars, false))
 					} else {
-						fmt.Printf("%s L%d: %s %q\n", the_page.ID, tok.Line, "no such page to import", tok.Text) // @error
+						render_error(the_page, tok, "failed to import")
 					}
 				}
 
@@ -332,8 +329,6 @@ func check_slash(s string) string {
 var meta_source  = `<meta property="${v}" content="${v}">`
 var meta_descrip = `<meta name="description" content="${v}">`
 
-// @todo make these things optional
-
 func meta(the_page *Page) string {
 	var meta_block strings.Builder
 
@@ -388,7 +383,7 @@ func sitemap() {
 		url_block.WriteString(sub_sprint(url_source, config.Domain, page.URLPath))
 	}
 
-	final := sub_sprint(sitemap_source, url_block.String())
+	final := sub_content(sitemap_source, url_block.String())
 
 	write_file(filepath.Join(config.Output, "sitemap.xml"), final)
 }

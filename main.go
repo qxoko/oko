@@ -3,8 +3,9 @@ package main
 import (
 	"os"
 	"fmt"
-	"time"
 	"flag"
+	"sort"
+	"time"
 	"path/filepath"
 )
 
@@ -80,6 +81,25 @@ func do_pages(do_all_pages bool) {
 			delete_file(filepath.Join(config.Output, path))
 		}
 	}
+
+	// report results
+	if len(file_mod) > 0 {
+		if config.Sitemap {
+			sitemap()
+		}
+
+		sort.SliceStable(file_mod, func(i, j int) bool {
+			return file_mod[i].ID < file_mod[j].ID
+		})
+
+		fmt.Println("[ø] updated pages\n")
+
+		for _, file := range file_mod {
+			fmt.Println("   ", file.ID)
+		}
+
+		fmt.Println()
+	}
 }
 
 func support_files(root string, age time.Time) []string {
@@ -109,6 +129,8 @@ func support_files(root string, age time.Time) []string {
 }
 
 func do_static_files() {
+	var list []string
+
 	for _, file := range config.Include {
 
 		// directories
@@ -134,6 +156,7 @@ func do_static_files() {
 				s := filepath.Join(file, n.Path)
 				o := filepath.Join(config.Output, s)
 				copy_file(s, o)
+				list = append(list, s)
 			}
 
 			for _, n := range file_del {
@@ -149,13 +172,19 @@ func do_static_files() {
 		out_path := filepath.Join(config.Output, file)
 
 		if info, ok := file_data(file); ok {
+			do_copy := false
 
 			if out, ok := file_data(out_path); ok {
 				if info.ModTime().After(out.ModTime()) {
-					copy_file(file, out_path)
+					do_copy = true
 				}
 			} else {
+				do_copy = true
+			}
+
+			if do_copy {
 				copy_file(file, out_path)
+				list = append(list, file)
 			}
 
 		} else {
@@ -166,18 +195,27 @@ func do_static_files() {
 				continue
 			}
 
-			fmt.Printf("no such file to include: %q\n", file) // @error
+			warning("no file to include: " + file)
 		}
+	}
+
+	if len(list) > 0 {
+		fmt.Println("[ø] updated static files\n")
+
+		for _, file := range list {
+			fmt.Println("   ", file)
+		}
+
+		fmt.Println()
 	}
 }
 
 func main() {
-	// time_track := time.Now()
+	FLAG_ALL := flag.Bool("all", false, "")
 
-	DO_ALL_PAGES := flag.Bool("all", false, "")
 	flag.Parse()
 
-	if *DO_ALL_PAGES {
+	if *FLAG_ALL {
 		do_pages(true)
 	} else {
 		do_pages(false)
@@ -185,9 +223,5 @@ func main() {
 
 	do_static_files()
 
-	if config.Sitemap {
-		sitemap()
-	}
-
-	// fmt.Println(time.Since(time_track))
+	print_warnings()
 }

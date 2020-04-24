@@ -110,7 +110,6 @@ func file_data(path string) (os.FileInfo, bool) {
 }
 
 func mkdir(path string) {
-	fmt.Println("created:", path)
 	os.MkdirAll(path, os.ModePerm)
 }
 
