@@ -12,32 +12,36 @@ var DepTree = make(map[string][]string)
 type Token_Type int
 
 const (
-	H1 Token_Type = iota
+	tok_begin Token_Type = iota
+
+	H1
 	H2
 	H3
 
-	HEADINGS
+	tok_headings
 
+	QUOTE
+	PARAGRAPH
+	LIST_ENTRY
+
+	tok_inline_format
+
+	ERROR
 	IMAGE
 	TOKEN
 	VIDEO
-	QUOTE
 	IMPORT
 	SNIPPET
 	DIVIDER
 	FUNCTION
-	PARAGRAPH
-	LIST_ENTRY
 	BLOCK_CODE
 	BLOCK_START
 	BLOCK_CLOSE
 	CODE_GUTS
 	HTML_SNIPPET
 
-	ERROR
+	tok_if_statements
 
-	// keep at end
-	IF_STATEMENT
 	IF_SCOPE_PROJECT
 	IF_SCOPE_PARENT
 	IF_SCOPE_PAGE
@@ -51,31 +55,36 @@ type Token struct {
 }
 
 var token_names = [...]string {
+	"tok_begin",
+
 	"h1",
 	"h2",
 	"h3",
 
-	"headings",
+	"tok_headings",
 
+	"quote",
+	"paragraph",
+	"list_entry",
+
+	"tok_inline_format",
+
+	"error",
 	"image",
 	"token",
 	"video",
-	"quote",
 	"import",
 	"snippet",
 	"divider",
 	"function",
-	"paragraph",
-	"list_entry",
 	"block_code",
 	"block_start",
 	"block_close",
 	"code_guts",
 	"html_snippet",
 
-	"error",
+	"tok_if_statements",
 
-	"if_statement",
 	"if_scope_project",
 	"if_scope_parent",
 	"if_scope_page",
@@ -92,23 +101,23 @@ type Token_List struct {
 	Pos    int
 }
 
-func (tree *Token_List) peek() *Token {
+func (tree *Token_List) Peek() *Token {
 	return tree.Tokens[tree.Pos-1]
 }
 
-func (tree *Token_List) lookahead() *Token {
+func (tree *Token_List) Lookahead() *Token {
 	if tree.Pos == len(tree.Tokens) {
 		return nil
 	}
 	return tree.Tokens[tree.Pos]
 }
 
-func (tree *Token_List) next() *Token {
+func (tree *Token_List) Next() *Token {
 	if tree.Pos == len(tree.Tokens) {
 		return nil
 	}
 	tree.Pos++
-	return tree.peek()
+	return tree.Peek()
 }
 
 
@@ -323,6 +332,11 @@ func parser(page *Page, source []byte) (*Token_List, bool) {
 			list = append(list, &Token{QUOTE, string(text), line_no(input), nil})
 			continue
 		}
+		if text, update_input, ok := simple_oko_token(input, '.'); ok {
+			input = update_input
+			list = append(list, &Token{PARAGRAPH, string(text), line_no(input), nil})
+			continue
+		}
 
 		if input[0] == '-' {
 			if count_sequential_runes(input, '-') == 3 {
@@ -404,7 +418,7 @@ func parser(page *Page, source []byte) (*Token_List, bool) {
 					var last  rune
 
 					for _, r := range test_input {
-						if r == '}' && last != '\\' {
+						if r == '}' && last != '\\' && (last == '\n' || last == '\r') {
 							break
 						}
 						last = r

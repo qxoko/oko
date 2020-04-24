@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"bytes"
 	"strings"
 	"unicode"
 	"strconv"
@@ -16,51 +15,51 @@ const (
 )
 
 func vimeo(viewcode, ratio string, args []string) string {
-	iframe := sub_sprint([]byte(`<div class="video"><div class="video-container"${v}><iframe src="https://player.vimeo.com/video/${v}?color=0&title=0&byline=0&portrait=0" frameborder="0" allow="fullscreen" allowfullscreen></iframe></div></div>`), ratio, viewcode)
+	iframe := sub_sprint(`<div class="video"><div class="video-container"${v}><iframe src="https://player.vimeo.com/video/${v}?color=0&title=0&byline=0&portrait=0" frameborder="0" allow="fullscreen" allowfullscreen></iframe></div></div>`, ratio, viewcode)
 
 	if len(args) == 0 {
-		return string(iframe)
+		return iframe
 	}
 
 	for _, a := range args {
 		if a[0] == '#' {
-			iframe = bytes.Replace(iframe, []byte(`color=0`), []byte(`color=` + a[1:len(a)]), 1)
+			iframe = strings.Replace(iframe, `color=0`, `color=` + a[1:len(a)], 1)
 			continue
 		}
 
 		switch a {
 			case "hide_all":
-				iframe = bytes.Replace(iframe, []byte(`&title=0&byline=0&portrait=0`), []byte{}, 1)
+				iframe = strings.Replace(iframe, `&title=0&byline=0&portrait=0`, ``, 1)
 
 			case "hide_title":
-				iframe = bytes.Replace(iframe, []byte(`&title=0`), []byte{}, 1)
+				iframe = strings.Replace(iframe, `&title=0`, ``, 1)
 
 			case "hide_portrait":
-				iframe = bytes.Replace(iframe, []byte(`&portrait=0`), []byte{}, 1)
+				iframe = strings.Replace(iframe, `&portrait=0`, ``, 1)
 
 			case "hide_byline":
-				iframe = bytes.Replace(iframe, []byte(`&byline=0`), []byte{}, 1)
+				iframe = strings.Replace(iframe, `&byline=0`, ``, 1)
 		}
 	}
 
-	return string(iframe)
+	return iframe
 }
 
 func youtube(viewcode, ratio string, args []string) string {
-	iframe := sub_sprint([]byte(`<div class="video"><div class="video-container"${v}><iframe src="https://www.youtube-nocookie.com/embed/${v}?rel=0&controls=1" frameborder="0" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div></div>`), ratio, viewcode)
+	iframe := sub_sprint(`<div class="video"><div class="video-container"${v}><iframe src="https://www.youtube-nocookie.com/embed/${v}?rel=0&controls=1" frameborder="0" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div></div>`, ratio, viewcode)
 
 	if len(args) == 0 {
-		return string(iframe)
+		return iframe
 	}
 
 	for _, a := range args {
 		switch a {
 			case "hide_controls":
-				iframe = bytes.Replace(iframe, []byte(`&controls=1`), []byte(`&controls=0`), 1)
+				iframe = strings.Replace(iframe, `&controls=1`, `&controls=0`, 1)
 		}
 	}
 
-	return string(iframe)
+	return iframe
 }
 
 func video(s string) string {

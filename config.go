@@ -42,17 +42,17 @@ func load_config() *Config {
 	if config.Favicon != "" {
 		// config.Include = append(config.Include, config.Favicon)
 
-		var text []byte
+		var text string
 
 		switch filepath.Ext(config.Favicon) {
-			case ".ico": text = []byte(`<link rel="icon" type="image/x-icon" href="${body}">`)
-			case ".png": text = []byte(`<link rel="icon" type="image/png" href="${body}">`)
-			case ".gif": text = []byte(`<link rel="icon" type="image/gif" href="${body}">`)
+			case ".ico": text = `<link rel="icon" type="image/x-icon" href="${v}">`
+			case ".png": text = `<link rel="icon" type="image/png" href="${v}">`
+			case ".gif": text = `<link rel="icon" type="image/gif" href="${v}">`
 
 			default: panic("bad favicon format")
 		}
 
-		config.Favicon = string(sub_content(text, config.Favicon))
+		config.Favicon = sub_content(text, config.Favicon)
 	}
 
 	config.StyleRender = render_style(config.Style, ``)
@@ -135,26 +135,24 @@ func render_style(list []string, def string) string {
 	if len(list) == 0 {
 		return def
 	}
-	var s = []byte(`<link rel="stylesheet" type="text/css" href="${content}">`)
-	return render_stackable(list, def, s)
+	return render_stackable(list, def, `<link rel="stylesheet" type="text/css" href="${v}">`)
 }
 
 func render_script(list []string, def string) string {
 	if len(list) == 0 {
 		return def
 	}
-	var s = []byte(`<script type="text/javascript" src="${content}"></script>`)
-	return render_stackable(list, def, s)
+	return render_stackable(list, def, `<script type="text/javascript" src="${v}"></script>`)
 }
 
-func render_stackable(list []string, def string, source []byte) string {
+func render_stackable(list []string, def, source string) string {
 	var r strings.Builder
 
 	for _, item := range list {
 		if item == "default" {
 			r.WriteString(def)
 		} else {
-			r.WriteString(string(sub_content(source, item)))
+			r.WriteString(sub_content(source, item))
 		}
 	}
 
