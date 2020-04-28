@@ -63,6 +63,10 @@ func youtube(viewcode, ratio string, args []string) string {
 }
 
 func video(s string) string {
+	if s == "" {
+		return ""
+	}
+
 	args     := strings.Split(s, " ")
 	viewcode := args[0]
 
@@ -76,18 +80,24 @@ func video(s string) string {
 		}
 	}
 
-	if strings.Contains(args[1], ":") {
-		v := strings.SplitN(args[1], ":", 2)
+	if len(args) > 1 {
+		if strings.Contains(args[1], ":") {
+			v := strings.SplitN(args[1], ":", 2)
 
-		x, err := strconv.ParseFloat(v[0], 32); if err != nil { panic(err) }
-		y, err := strconv.ParseFloat(v[1], 32); if err != nil { panic(err) }
+			x, err := strconv.ParseFloat(v[0], 32); if err != nil { panic(err) }
+			y, err := strconv.ParseFloat(v[1], 32); if err != nil { panic(err) }
 
-		ratio = fmt.Sprintf(` style="padding-top: %.2f%%"`, y / x * 100.0)
+			ratio = fmt.Sprintf(` style="padding-top: %.2f%%"`, y / x * 100.0)
+		}
+
+		args = args[1:]
+	} else {
+		args = nil
 	}
 
 	switch service {
-		case YOUTUBE: return youtube(viewcode, ratio, args[1:])
-		case VIMEO:   return vimeo(viewcode,   ratio, args[1:])
+		case YOUTUBE: return youtube(viewcode, ratio, args)
+		case VIMEO:   return vimeo(viewcode,   ratio, args)
 	}
 
 	return ""
