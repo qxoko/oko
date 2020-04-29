@@ -119,7 +119,11 @@ func load_plate(name string) *Plate {
 		}
 
 		for key, val := range extend.Tokens {
-			plate.Tokens[key] = val
+			if v, ok := plate.Tokens[key]; !ok {
+				plate.Tokens[key] = val
+			} else if v == "" {
+				delete(plate.Tokens, key)
+			}
 		}
 	}
 
@@ -135,14 +139,14 @@ func render_style(list []string, def string) string {
 	if len(list) == 0 {
 		return def
 	}
-	return render_stackable(list, def, `<link rel="stylesheet" type="text/css" href="${v}">`)
+	return render_stackable(list, def, `<link rel="stylesheet" type="text/css" href="${v}"/>`)
 }
 
 func render_script(list []string, def string) string {
 	if len(list) == 0 {
 		return def
 	}
-	return render_stackable(list, def, `<script type="text/javascript" src="${v}"></script>`)
+	return render_stackable(list, def, `<script type="text/javascript" src="${v}" defer/>`)
 }
 
 func render_stackable(list []string, def, source string) string {
