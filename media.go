@@ -7,10 +7,10 @@ import (
 	"strconv"
 )
 
-type Video_Service int
+type Service int
 
 const (
-	YOUTUBE Video_Service = iota
+	YOUTUBE Service = iota
 	VIMEO
 )
 
@@ -62,7 +62,7 @@ func youtube(viewcode, ratio string, args []string) string {
 	return iframe
 }
 
-func video(s string) string {
+func media(s string) string {
 	if s == "" {
 		return ""
 	}

@@ -29,7 +29,7 @@ const (
 	ERROR
 	IMAGE
 	TOKEN
-	VIDEO
+	MEDIA
 	IMPORT
 	SNIPPET
 	DIVIDER
@@ -43,8 +43,11 @@ const (
 	tok_if_statements
 
 	IF_SCOPE_PROJECT
+	IF_SCOPE_PROJECT_NOT
 	IF_SCOPE_PARENT
+	IF_SCOPE_PARENT_NOT
 	IF_SCOPE_PAGE
+	IF_SCOPE_PAGE_NOT
 )
 
 type Token struct {
@@ -86,8 +89,11 @@ var token_names = [...]string {
 	"tok_if_statements",
 
 	"if_scope_project",
+	"if_scope_project_not",
 	"if_scope_parent",
+	"if_scope_parent_not",
 	"if_scope_page",
+	"if_scope_page_not",
 }
 
 func (t Token_Type) String() string {
@@ -99,6 +105,8 @@ func (t Token_Type) String() string {
 type Token_List struct {
 	Tokens []*Token
 	Pos    int
+	IsCommittable bool
+	Level  int
 }
 
 func (tree *Token_List) Peek() *Token {
@@ -116,8 +124,22 @@ func (tree *Token_List) Next() *Token {
 	if tree.Pos == len(tree.Tokens) {
 		return nil
 	}
+
 	tree.Pos++
-	return tree.Peek()
+
+	x := tree.Peek()
+
+	if x.Type == BLOCK_CLOSE {
+		tree.Level--
+	}
+	if x.Type > tok_if_statements {
+		tree.Level++
+	}
+	if x.Type == BLOCK_CODE || x.Type == BLOCK_START {
+		tree.Level++
+	}
+
+	return x
 }
 
 
@@ -188,7 +210,7 @@ func consume_whitespace(input []rune) []rune {
 			return input[i:]
 		}
 	}
-	return input
+	return input[len(input):]
 }
 
 func count_newlines(input []rune) int {
@@ -239,6 +261,9 @@ func parser(page *Page, source []byte) (*Token_List, bool) {
 	line_no := func(input []rune) int {
 		return total_lines - count_newlines(input) + 1
 	}
+
+	// must be re-rendered every call due to relations
+	committable := true
 
 	var list []*Token
 	var active_block []*Token
@@ -291,14 +316,15 @@ func parser(page *Page, source []byte) (*Token_List, bool) {
 		}
 		if text, update_input, ok := simple_oko_token(input, '@'); ok {
 			input = update_input
-			list = append(list, &Token{VIDEO, string(text), line_no(input), nil})
+			list = append(list, &Token{MEDIA, string(text), line_no(input), nil})
 			continue
 		}
 		if text, update_input, ok := simple_oko_token(input, '+'); ok {
 			input  = update_input
 			t     := string(text)
+			name  := strings.SplitN(t, " ", 2)[0]
 
-			DepTree[t] = append(DepTree[strings.SplitN(t, " ", 2)[0]], page.ID)
+			DepTree[name] = append(DepTree[name], page.ID)
 
 			list = append(list, &Token{IMPORT, t, line_no(input), nil})
 			continue
@@ -306,8 +332,9 @@ func parser(page *Page, source []byte) (*Token_List, bool) {
 		if text, update_input, ok := simple_oko_token(input, '>'); ok {
 			input  = update_input
 			t     := string(text)
+			name  := "snip_" + t
 
-			DepTree[t] = append(DepTree["snip_" + t], page.ID)
+			DepTree[name] = append(DepTree[name], page.ID)
 
 			list = append(list, &Token{SNIPPET, t, line_no(input), nil})
 			continue
@@ -322,11 +349,6 @@ func parser(page *Page, source []byte) (*Token_List, bool) {
 			list = append(list, &Token{FUNCTION, string(text), line_no(input), nil})
 			continue
 		}
-		if text, update_input, ok := simple_oko_token(input, '*'); ok {
-			input = update_input
-			list = append(list, &Token{HTML_SNIPPET, string(text), line_no(input), nil})
-			continue
-		}
 		if text, update_input, ok := simple_oko_token(input, '$'); ok {
 			input = update_input
 			list = append(list, &Token{QUOTE, string(text), line_no(input), nil})
@@ -335,6 +357,15 @@ func parser(page *Page, source []byte) (*Token_List, bool) {
 		if text, update_input, ok := simple_oko_token(input, '.'); ok {
 			input = update_input
 			list = append(list, &Token{PARAGRAPH, string(text), line_no(input), nil})
+			continue
+		}
+
+		// html snippets (preserve leading whitespace - 1)
+		if input[0] == '*' {
+			input  = input[2:]
+			text  := extract_to_newline(input)
+			input  = input[len(text):]
+			list   = append(list, &Token{HTML_SNIPPET, string(text), line_no(input), nil})
 			continue
 		}
 
@@ -383,6 +414,14 @@ func parser(page *Page, source []byte) (*Token_List, bool) {
 				switch k {
 					case "script":
 						page.Script = append(page.Script, v)
+
+					case "tags":
+						page.Tags = strings.Fields(v)
+
+					case "draft":
+						if v == "true" {
+							return nil, true
+						}
 
 					default:
 						if a, ok := get(active_block); ok {
@@ -447,27 +486,48 @@ func parser(page *Page, source []byte) (*Token_List, bool) {
 
 				// if statement
 				if str_ident == "if" {
-					if_token          := Token{}
-					if_input          := test_input
+					if_token := Token{}
+					if_input := test_input
+
 					found_valid_scope := false
+					is_not := false
+
+					if if_input[0] == '!' {
+						if_input = if_input[1:]
+						is_not   = true
+					}
 
 					if count, ok := compare_arbitrary_runes(if_input, "project"); ok {
 						if_input = consume_whitespace(if_input[count:])
 						found_valid_scope = true
 
-						if_token.Type = IF_SCOPE_PROJECT
+						if is_not {
+							if_token.Type = IF_SCOPE_PROJECT_NOT
+						} else {
+							if_token.Type = IF_SCOPE_PROJECT
+						}
 
 					} else if count, ok := compare_arbitrary_runes(if_input, "parent"); ok {
 						if_input = consume_whitespace(if_input[count:])
 						found_valid_scope = true
 
-						if_token.Type = IF_SCOPE_PARENT
+						committable = false
+
+						if is_not {
+							if_token.Type = IF_SCOPE_PARENT_NOT
+						} else {
+							if_token.Type = IF_SCOPE_PARENT
+						}
 
 					} else if count, ok := compare_arbitrary_runes(if_input, "page"); ok {
 						if_input = consume_whitespace(if_input[count:])
 						found_valid_scope = true
 
-						if_token.Type = IF_SCOPE_PAGE
+						if is_not {
+							if_token.Type = IF_SCOPE_PAGE_NOT
+						} else {
+							if_token.Type = IF_SCOPE_PAGE
+						}
 					}
 
 					if !found_valid_scope {
@@ -519,11 +579,27 @@ func parser(page *Page, source []byte) (*Token_List, bool) {
 	}
 
 	if name, ok := page.Vars["plate"]; ok {
-		name = "plate_" + name
-		DepTree[name] = append(DepTree[name], page.ID)
+		n := "plate_" + name
+		DepTree[n] = append(DepTree[n], page.ID)
+
+		plate := load_plate(name)
+
+		if len(plate.SnippetBefore) > 0 {
+			for _, s := range plate.SnippetBefore {
+				name := "snip_" + s
+				DepTree[name] = append(DepTree[name], page.ID)
+			}
+		}
+
+		if len(plate.SnippetAfter) > 0 {
+			for _, s := range plate.SnippetAfter {
+				name := "snip_" + s
+				DepTree[name] = append(DepTree[name], page.ID)
+			}
+		}
 	}
 
-	return &Token_List{list, 0}, false
+	return &Token_List{list, 0, committable, 0}, false
 }
 
 // dev

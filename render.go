@@ -21,7 +21,7 @@ var default_plate = &Plate {
 	},
 }
 
-var page_source = `<!DOCTYPE html><html><head><title>${title}</title><meta charset="utf-8">${favicon}${_style}${_meta}</head><body>${body}${_script}</body></html>`
+var page_source = `<!DOCTYPE html><html><head><title>${title}</title><meta charset="utf-8">${favicon}${_style}${_meta}${_script}</head><body>${body}</body></html>`
 
 func plate_entry(p *Plate, v string) string {
 	if value, ok := p.Tokens[v]; ok {
@@ -50,7 +50,7 @@ func render(p *Page) {
 
 	if len(p.Plate.SnippetBefore) > 0 {
 		for _, s := range p.Plate.SnippetBefore {
-			body.WriteString(snippet(s))
+			body.WriteString(snippet(p, s))
 		}
 	}
 
@@ -64,7 +64,7 @@ func render(p *Page) {
 
 	if len(p.Plate.SnippetAfter) > 0 {
 		for _, s := range p.Plate.SnippetAfter {
-			body.WriteString(snippet(s))
+			body.WriteString(snippet(p, s))
 		}
 	}
 
@@ -102,7 +102,21 @@ func recurse_render(the_page *Page, active_block *Token) string {
 		}
 
 		if tok.Type > tok_if_statements {
-			continue // @todo if statements
+			if check_if_statement(the_page, tok) {
+				content.WriteString(recurse_render(the_page, tok))
+			} else {
+				level := the_list.Level
+				for {
+					tok := the_list.Next()
+					if tok == nil {
+						break
+					}
+					if tok.Type == BLOCK_CLOSE && the_list.Level == level - 1 {
+						break
+					}
+				}
+			}
+			continue
 		}
 
 		if tok.Type < tok_inline_format && tok.Type > tok_headings {
@@ -138,7 +152,7 @@ func recurse_render(the_page *Page, active_block *Token) string {
 				continue
 
 			case SNIPPET:
-				content.WriteString(snippet(tok.Text))
+				content.WriteString(snippet(the_page, tok.Text))
 				continue
 
 			case IMPORT:
@@ -156,14 +170,16 @@ func recurse_render(the_page *Page, active_block *Token) string {
 					if p, ok := PageList[n[0]]; ok {
 						content.WriteString(mapmap(v, p.Vars, false))
 					} else {
-						render_error(the_page, tok, "failed to import")
+						warning("skipped import " + n[0])
 					}
+				} else {
+					render_error(the_page, tok, "failed to import")
 				}
 
 				continue
 
-			case VIDEO:
-				content.WriteString(video(tok.Text))
+			case MEDIA:
+				content.WriteString(media(tok.Text))
 				continue
 
 			case HTML_SNIPPET:
@@ -268,7 +284,7 @@ func sub_sprint(source string, v ...string) string {
 
 var SnippetList = make(map[string]string)
 
-func snippet(name string) string {
+func snippet(parent *Page, name string) string {
 	if v, ok := SnippetList[name]; ok {
 		return v
 	}
@@ -277,6 +293,7 @@ func snippet(name string) string {
 	page := &Page{}
 
 	page.Vars = make(map[string]string)
+	page.CurrentParent = parent
 
 	if list, is_draft := parser(page, load_file_bytes(path)); !is_draft {
 		page.List = list
@@ -294,11 +311,11 @@ func snippet(name string) string {
 
 	if len(page.Plate.SnippetBefore) > 0 {
 		for _, s := range page.Plate.SnippetBefore {
-			body.WriteString(snippet(s))
+			body.WriteString(snippet(page, s))
 		}
 	}
 
-	inside := inlines(recurse_render(page, nil))
+	inside := recurse_render(page, nil)
 
 	if b, ok := page.Plate.Tokens["body"]; ok {
 		body.WriteString(sub_content(b, inside))
@@ -308,13 +325,15 @@ func snippet(name string) string {
 
 	if len(page.Plate.SnippetAfter) > 0 {
 		for _, s := range page.Plate.SnippetAfter {
-			body.WriteString(snippet(s))
+			body.WriteString(snippet(page, s))
 		}
 	}
 
 	b := mapmap(body.String(), page.Vars, false)
 
-	SnippetList[name] = b
+	if page.List.IsCommittable {
+		SnippetList[name] = b
+	}
 
 	return b
 }
@@ -342,6 +361,11 @@ func meta(the_page *Page) string {
 		the_page.Meta["image"] = config.Meta["image"]
 	}
 
+	// domain
+	canon_path := config.Domain + the_page.URLPath
+	meta_block.WriteString(sub_content(`<link rel="canonical" href="${v}"/>`, canon_path))
+	meta_block.WriteString(sub_sprint(meta_source, "og:url", canon_path))
+
 	domain := check_slash(config.Domain)
 
 	// generic opengraph entries
@@ -360,9 +384,6 @@ func meta(the_page *Page) string {
 
 		meta_block.WriteString(sub_sprint(meta_source, "og:" + tag, value))
 	}
-
-	// domain
-	meta_block.WriteString(sub_sprint(meta_source, "og:url", domain + the_page.URLPath))
 
 	// twitter
 	if c, ok := config.Meta["twitter"]; ok {

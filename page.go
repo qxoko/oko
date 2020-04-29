@@ -3,7 +3,6 @@ package main
 import (
 	"io"
 	"os"
-	"fmt"
 	"time"
 	"strings"
 	"io/ioutil"
@@ -25,6 +24,8 @@ type File_Info struct {
 	Path string
 	Dir  string
 
+	IsDraft bool
+
 	Format File_Format
 	Mod    time.Time
 }
@@ -36,6 +37,7 @@ type Page struct {
 	URLPath    string
 
 	IsRendered bool // @hack
+	CurrentParent *Page // @hack
 
 	Format     File_Format
 
@@ -146,7 +148,6 @@ func write_file(path, content string) {
 }
 
 func delete_file(path string) {
-	fmt.Println("deleted:", path)
 	err := os.RemoveAll(path)
 
 	if err != nil {

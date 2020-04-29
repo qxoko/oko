@@ -32,7 +32,9 @@ func do_pages(do_all_pages bool) {
 			the_page := make_page(file)
 			bytes    := load_file_bytes(the_page.SourcePath)
 
-			if list, is_draft := parser(the_page, bytes); !is_draft {
+			if list, is_draft := parser(the_page, bytes); is_draft {
+				file.IsDraft = true
+			} else {
 				the_page.List = list
 			}
 		}
@@ -66,6 +68,10 @@ func do_pages(do_all_pages bool) {
 		for _, file := range file_mod {
 			if file.Format == HTML {
 				copy_file(file.Path, filepath.Join(config.Output, file.Path))
+				continue
+			}
+
+			if file.IsDraft {
 				continue
 			}
 
@@ -166,36 +172,36 @@ func do_static_files() {
 			for path, _ := range path_del {
 				mkdir(filepath.Join(config.Output, path))
 			}
-		}
-
-		// single files
-		out_path := filepath.Join(config.Output, file)
-
-		if info, ok := file_data(file); ok {
-			do_copy := false
-
-			if out, ok := file_data(out_path); ok {
-				if info.ModTime().After(out.ModTime()) {
-					do_copy = true
-				}
-			} else {
-				do_copy = true
-			}
-
-			if do_copy {
-				copy_file(file, out_path)
-				list = append(list, file)
-			}
-
 		} else {
+			// single files
 			out_path := filepath.Join(config.Output, file)
 
-			if file_exists(out_path) {
-				delete_file(out_path)
-				continue
-			}
+			if info, ok := file_data(file); ok {
+				do_copy := false
 
-			warning("no file to include: " + file)
+				if out, ok := file_data(out_path); ok {
+					if info.ModTime().After(out.ModTime()) {
+						do_copy = true
+					}
+				} else {
+					do_copy = true
+				}
+
+				if do_copy {
+					copy_file(file, out_path)
+					list = append(list, file)
+				}
+
+			} else {
+				out_path := filepath.Join(config.Output, file)
+
+				if file_exists(out_path) {
+					delete_file(out_path)
+					continue
+				}
+
+				warning("no file to include: " + file)
+			}
 		}
 	}
 
