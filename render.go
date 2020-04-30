@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"path/filepath"
 )
@@ -35,10 +36,6 @@ func plate_entry(p *Plate, v string) string {
 }
 
 func render(p *Page) {
-	if p.IsRendered {
-		return
-	}
-
 	if plate_name, ok := p.Vars["plate"]; ok {
 		p.Plate = load_plate(plate_name)
 	} else {
@@ -84,8 +81,6 @@ func render(p *Page) {
 	p.Vars["full_render"] = content
 
 	write_file(p.OutputPath, content)
-
-	p.IsRendered = true
 }
 
 func recurse_render(the_page *Page, active_block *Token) string {
@@ -396,12 +391,23 @@ func meta(the_page *Page) string {
 
 func sitemap() {
 	sitemap_source := `<?xml version="1.0" encoding="utf-8" standalone="yes"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">${v}</urlset>`
+
 	url_source := `<url><loc>${v}${v}</loc></url>`
 
 	var url_block strings.Builder
 
+	ordered := make([]string, len(PageList))
+
 	for _, page := range PageList {
-		url_block.WriteString(sub_sprint(url_source, config.Domain, page.URLPath))
+		ordered = append(ordered, sub_sprint(url_source, config.Domain, page.URLPath))
+	}
+
+	sort.SliceStable(ordered, func(i, j int) bool {
+		return ordered[i] < ordered[j]
+	})
+
+	for _, page := range ordered {
+		url_block.WriteString(page)
 	}
 
 	final := sub_content(sitemap_source, url_block.String())
