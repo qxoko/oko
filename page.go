@@ -34,7 +34,6 @@ type Page struct {
 	OutputPath string
 	URLPath    string
 
-	IsRendered bool // @hack
 	CurrentParent *Page // @hack
 
 	IsDraft    bool
@@ -180,7 +179,6 @@ func walk(root string, extensions ...string) (map[string]*File_Info, time.Time) 
 	}
 
 	var list = make(map[string]*File_Info)
-
 	var youngest time.Time
 
 	if !path_exists(root) {

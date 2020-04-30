@@ -96,7 +96,6 @@ func do_pages(do_all_pages bool) {
 		delete_file(filepath.Join(config.Output, path))
 	}
 
-	// report results
 	if len(report_list) > 0 {
 		sort.SliceStable(report_list, func(i, j int) bool {
 			return report_list[i] < report_list[j]
@@ -113,11 +112,13 @@ func do_pages(do_all_pages bool) {
 }
 
 func do_static_files() {
-	var list []string
+	if len(config.Include) == 0 {
+		return
+	}
+
+	report_list := make([]string, 0, 16)
 
 	for _, file := range config.Include {
-
-		// directories
 		if path_exists(file) {
 			source, _ := walk(file)
 			output, _ := walk(filepath.Join(config.Output, file))
@@ -140,7 +141,7 @@ func do_static_files() {
 				s := filepath.Join(file, n.Path)
 				o := filepath.Join(config.Output, s)
 				copy_file(s, o)
-				list = append(list, s)
+				report_list = append(report_list, s)
 			}
 
 			for _, n := range file_del {
@@ -167,12 +168,10 @@ func do_static_files() {
 
 				if do_copy {
 					copy_file(file, out_path)
-					list = append(list, file)
+					report_list = append(report_list, file)
 				}
 
 			} else {
-				out_path := filepath.Join(config.Output, file)
-
 				if file_exists(out_path) {
 					delete_file(out_path)
 					continue
@@ -183,10 +182,14 @@ func do_static_files() {
 		}
 	}
 
-	if len(list) > 0 {
+	if len(report_list) > 0 {
 		fmt.Println("[ø] updated static files\n")
 
-		for _, file := range list {
+		sort.SliceStable(report_list, func(i, j int) bool {
+			return report_list[i] < report_list[j]
+		})
+
+		for _, file := range report_list {
 			fmt.Println("   ", file)
 		}
 
