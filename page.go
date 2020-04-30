@@ -24,8 +24,6 @@ type File_Info struct {
 	Path string
 	Dir  string
 
-	IsDraft bool
-
 	Format File_Format
 	Mod    time.Time
 }
@@ -39,6 +37,7 @@ type Page struct {
 	IsRendered bool // @hack
 	CurrentParent *Page // @hack
 
+	IsDraft    bool
 	Format     File_Format
 
 	Style      []string
@@ -262,33 +261,38 @@ func walk(root string, extensions ...string) (map[string]*File_Info, time.Time) 
 	return list, youngest
 }
 
-func compare_files(source, output map[string]*File_Info) ([]*File_Info, []*File_Info) {
-	var mod []*File_Info
-	var del []*File_Info
+func compare_files(source, output map[string]*File_Info) (map[string]*File_Info, map[string]*File_Info) {
+
+	cap := len(source)
+
+	mod := make(map[string]*File_Info, cap)
+	del := make(map[string]*File_Info, cap)
 
 	for _, src := range source {
 		if dst, ok := output[src.ID]; ok {
 			if src.Mod.After(dst.Mod) {
-				mod = append(mod, src)
+				mod[src.ID] = src
 			}
 		} else {
-			mod = append(mod, src)
+			mod[src.ID] = src
 		}
 	}
 
 	for _, src := range output {
 		if _, ok := source[src.ID]; !ok {
-			del = append(del, src)
+			del[src.ID] = src
 		}
 	}
 
 	return mod, del
 }
 
-func compare_dirs(source, output map[string]*File_Info, file_mod, file_del []*File_Info) (map[string]bool, map[string]bool) {
+func compare_dirs(source, output, file_mod, file_del map[string]*File_Info) (map[string]bool, map[string]bool) {
 
-	source_dirs := make(map[string]bool)
-	output_dirs := make(map[string]bool)
+	cap := len(source)
+
+	source_dirs := make(map[string]bool, cap)
+	output_dirs := make(map[string]bool, cap)
 
 	for _, f := range source {
 		if f.Dir == "." { continue }
@@ -299,8 +303,8 @@ func compare_dirs(source, output map[string]*File_Info, file_mod, file_del []*Fi
 		output_dirs[f.Dir] = true
 	}
 
-	mod := make(map[string]bool)
-	del := make(map[string]bool)
+	mod := make(map[string]bool, cap)
+	del := make(map[string]bool, cap)
 
 	for _, f := range source {
 		if f.Dir == "." { continue }
@@ -316,4 +320,30 @@ func compare_dirs(source, output map[string]*File_Info, file_mod, file_del []*Fi
 	}
 
 	return mod, del
+}
+
+func support_files(root string, age time.Time) []string {
+	var list []string
+
+	if !path_exists(root) {
+		return list
+	}
+
+	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		name   := info.Name()
+		prefix := name[0:1]
+
+		if prefix == "." || prefix == "_" {
+			return nil
+		}
+
+		if !info.IsDir() && info.ModTime().After(age) {
+			name = name[0:len(name) - len(filepath.Ext(name))]
+			list = append(list, name)
+		}
+
+		return nil
+	})
+
+	return list
 }

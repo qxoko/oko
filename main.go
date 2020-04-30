@@ -1,11 +1,9 @@
 package main
 
 import (
-	"os"
 	"fmt"
 	"flag"
 	"sort"
-	"time"
 	"path/filepath"
 )
 
@@ -21,9 +19,9 @@ func do_pages(do_all_pages bool) {
 	snippets := support_files("_data/snippets", age)
 	plates   := support_files("_data/plates",   age)
 
-	sum := len(file_mod) + len(plates) + len(snippets)
+	do_parse := (len(file_mod) + len(snippets) + len(plates)) > 0
 
-	if sum > 0 || do_all_pages {
+	if do_parse {
 		for _, file := range source {
 			if file.Format != OKO {
 				continue
@@ -32,106 +30,86 @@ func do_pages(do_all_pages bool) {
 			the_page := make_page(file)
 			bytes    := load_file_bytes(the_page.SourcePath)
 
-			if list, is_draft := parser(the_page, bytes); is_draft {
-				file.IsDraft = true
-			} else {
-				the_page.List = list
-			}
-		}
-
-		for path, _ := range path_mod {
-			mkdir(filepath.Join(config.Output, path))
-		}
-
-		if do_all_pages {
-			file_mod  = make([]*File_Info, 0, len(source))
-			for _, f := range source {
-				file_mod = append(file_mod, f)
-			}
-		} else {
-			if len(snippets) > 0 {
-				for _, s := range snippets {
-					for _, e := range DepTree["snip_" + s] {
-						file_mod = append(file_mod, source[e])
-					}
-				}
-			}
-			if len(plates) > 0 {
-				for _, p := range plates {
-					for _, e := range DepTree["plate_" + p] {
-						file_mod = append(file_mod, source[e])
-					}
-				}
-			}
-		}
-
-		for _, file := range file_mod {
-			if file.Format == HTML {
-				copy_file(file.Path, filepath.Join(config.Output, file.Path))
-				continue
-			}
-
-			if file.IsDraft {
-				continue
-			}
-
-			render(PageList[file.ID])
+			the_page.List = parser(the_page, bytes)
 		}
 	}
 
-	if len(file_del) > 0 || len(path_del) > 0 {
-		for _, file := range file_del {
-			delete_file(filepath.Join(config.Output, file.Path))
+	if do_parse && do_all_pages {
+		file_mod  = make(map[string]*File_Info, len(source))
+
+		for _, f := range source {
+			file_mod[f.ID] = f
 		}
-		for path, _ := range path_del {
-			delete_file(filepath.Join(config.Output, path))
+
+	} else {
+		for _, file := range file_mod {
+			if list, ok := DepTree[file.ID]; ok {
+				for _, id := range list {
+					file_mod[id] = source[id]
+				}
+			}
 		}
+		for _, s := range snippets {
+			for _, id := range DepTree["snip_" + s] {
+				file_mod[id] = source[id]
+			}
+		}
+		for _, p := range plates {
+			for _, id := range DepTree["plate_" + p] {
+				file_mod[id] = source[id]
+			}
+		}
+	}
+
+	for path, _ := range path_mod {
+		mkdir(filepath.Join(config.Output, path))
+	}
+
+	if config.Sitemap && len(file_mod) > 0 {
+		sitemap()
+	}
+
+	report_list := make([]string, 0, len(file_mod))
+
+	for ID, file := range file_mod {
+		if file.Format == HTML {
+			copy_file(file.Path, filepath.Join(config.Output, file.Path))
+			continue
+		}
+
+		page := PageList[ID]
+
+		if page.IsDraft {
+			continue
+		}
+
+		report_list = append(report_list, ID)
+
+		render(page)
+	}
+
+	for _, file := range file_del {
+		delete_file(filepath.Join(config.Output, file.Path))
+	}
+
+	for path, _ := range path_del {
+		delete_file(filepath.Join(config.Output, path))
 	}
 
 	// report results
-	if len(file_mod) > 0 {
-		if config.Sitemap {
-			sitemap()
-		}
-
-		sort.SliceStable(file_mod, func(i, j int) bool {
-			return file_mod[i].ID < file_mod[j].ID
+	if len(report_list) > 0 {
+		sort.SliceStable(report_list, func(i, j int) bool {
+			return report_list[i] < report_list[j]
 		})
 
 		fmt.Println("[ø] updated pages\n")
 
-		for _, file := range file_mod {
-			fmt.Println("   ", file.ID)
+		for _, file := range report_list {
+			fmt.Println("   ", file)
 		}
 
 		fmt.Println()
 	}
-}
-
-func support_files(root string, age time.Time) []string {
-	var list []string
-
-	if !path_exists(root) {
-		return list
-	}
-
-	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		name   := info.Name()
-		prefix := name[0:1]
-
-		if prefix == "." || prefix == "_" {
-			return nil
-		}
-
-		if !info.IsDir() && info.ModTime().After(age) {
-			name = name[0:len(name) - len(filepath.Ext(name))]
-			list = append(list, name)
-		}
-
-		return nil
-	})
-
-	return list
 }
 
 func do_static_files() {

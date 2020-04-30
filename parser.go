@@ -253,7 +253,7 @@ func get(a []*Token) (*Token, bool) {
 
 
 // @note block open/close balance checking pass?
-func parser(page *Page, source []byte) (*Token_List, bool) {
+func parser(page *Page, source []byte) *Token_List {
 	input := bytes.Runes(source)
 
 	total_lines := count_newlines(input)
@@ -420,7 +420,7 @@ func parser(page *Page, source []byte) (*Token_List, bool) {
 
 					case "draft":
 						if v == "true" {
-							return nil, true
+							page.IsDraft = true
 						}
 
 					default:
@@ -599,7 +599,7 @@ func parser(page *Page, source []byte) (*Token_List, bool) {
 		}
 	}
 
-	return &Token_List{list, 0, committable, 0}, false
+	return &Token_List{list, 0, committable, 0}
 }
 
 // dev

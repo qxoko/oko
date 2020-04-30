@@ -295,10 +295,10 @@ func snippet(parent *Page, name string) string {
 	page.Vars = make(map[string]string)
 	page.CurrentParent = parent
 
-	if list, is_draft := parser(page, load_file_bytes(path)); !is_draft {
-		page.List = list
-	} else {
-		return ""
+	page.List = parser(page, load_file_bytes(path))
+
+	if page.IsDraft {
+		warning("cannot have draft snippet " + page.ID)
 	}
 
 	if plate_name, ok := page.Vars["plate"]; ok {
