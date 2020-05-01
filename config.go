@@ -12,20 +12,26 @@ type Config struct {
 	Output  string
 	Favicon string
 
-	StyleRender  string
+	StyleRender string
 
 	Sitemap bool
 
 	Style   []string
 	Include []string
 
-	Meta    map[string]string
+	Meta map[string]string
 }
 
 func load_config() *Config {
 	var config Config
 
-	err := json.Unmarshal(load_file_bytes("_data/oko.json"), &config)
+	p := "_data/oko.json"
+
+	if !file_exists(p) {
+		return nil
+	}
+
+	err := json.Unmarshal(load_file_bytes(p), &config)
 
 	if err != nil {
 		panic(err)

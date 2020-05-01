@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 )
 
-var config *Config = load_config()
+var config *Config
 
 func do_pages(do_all_pages bool) {
 	source, _   := walk(".", ".ø", ".html")
@@ -19,7 +19,7 @@ func do_pages(do_all_pages bool) {
 	snippets := support_files("_data/snippets", age)
 	plates   := support_files("_data/plates",   age)
 
-	do_parse := (len(file_mod) + len(snippets) + len(plates)) > 0
+	do_parse := (len(file_mod) + len(snippets) + len(plates)) > 0 || do_all_pages
 
 	if do_parse {
 		for _, file := range source {
@@ -34,7 +34,7 @@ func do_pages(do_all_pages bool) {
 		}
 	}
 
-	if do_parse && do_all_pages {
+	if do_all_pages {
 		file_mod  = make(map[string]*File_Info, len(source))
 
 		for _, f := range source {
@@ -198,6 +198,13 @@ func do_static_files() {
 }
 
 func main() {
+	config = load_config()
+
+	if config == nil {
+		fmt.Println("[ø] not an oko project!")
+		return
+	}
+
 	FLAG_ALL := flag.Bool("all", false, "")
 
 	flag.Parse()
