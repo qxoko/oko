@@ -307,11 +307,12 @@ func render_snippet(the_page *Page) string {
 }
 
 func snippet(parent *Page, name string) string {
-	if v, ok := SnippetText[name]; ok {
-		return v
+	if body, ok := SnippetText[name]; ok {
+		return body
 	}
-	if v, ok := SnippetList[name]; ok {
-		return render_snippet(v)
+	if saved_page, ok := SnippetList[name]; ok {
+		saved_page.List.Reset()
+		return render_snippet(saved_page)
 	}
 
 	path := filepath.Join("_data/snippets", name + ".ø")

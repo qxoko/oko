@@ -142,6 +142,11 @@ func (tree *Token_List) Next() *Token {
 	return x
 }
 
+func (tree *Token_List) Reset() {
+	tree.Pos   = 0
+	tree.Level = 0
+}
+
 
 
 func simple_oko_token(input []rune, r rune) ([]rune, []rune, bool) {
