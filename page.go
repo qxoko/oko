@@ -34,14 +34,14 @@ type Page struct {
 	OutputPath string
 	URLPath    string
 
+	Style      []string
+	Script     []string
+	Tags       []string
+
 	CurrentParent *Page // @hack
 
 	IsDraft    bool
 	Format     File_Format
-
-	Style      []string
-	Script     []string
-	Tags       []string
 
 	Plate      *Plate
 	List       *Token_List
@@ -260,7 +260,6 @@ func walk(root string, extensions ...string) (map[string]*File_Info, time.Time) 
 }
 
 func compare_files(source, output map[string]*File_Info) (map[string]*File_Info, map[string]*File_Info) {
-
 	cap := len(source)
 
 	mod := make(map[string]*File_Info, cap)
@@ -286,7 +285,6 @@ func compare_files(source, output map[string]*File_Info) (map[string]*File_Info,
 }
 
 func compare_dirs(source, output, file_mod, file_del map[string]*File_Info) (map[string]bool, map[string]bool) {
-
 	cap := len(source)
 
 	source_dirs := make(map[string]bool, cap)

@@ -277,57 +277,72 @@ func sub_sprint(source string, v ...string) string {
 
 
 
-var SnippetList = make(map[string]string)
+var SnippetText = make(map[string]string)
+var SnippetList = make(map[string]*Page)
 
-func snippet(parent *Page, name string) string {
-	if v, ok := SnippetList[name]; ok {
-		return v
-	}
-
-	path := filepath.Join("_data/snippets/", name + ".ø")
-	page := &Page{}
-
-	page.Vars = make(map[string]string)
-	page.CurrentParent = parent
-
-	page.List = parser(page, load_file_bytes(path))
-
-	if page.IsDraft {
-		warning("cannot have draft snippet " + page.ID)
-	}
-
-	if plate_name, ok := page.Vars["plate"]; ok {
-		page.Plate = load_plate(plate_name)
-	} else {
-		page.Plate = default_plate
-	}
-
+func render_snippet(the_page *Page) string {
 	var body strings.Builder
 
-	if len(page.Plate.SnippetBefore) > 0 {
-		for _, s := range page.Plate.SnippetBefore {
-			body.WriteString(snippet(page, s))
+	if len(the_page.Plate.SnippetBefore) > 0 {
+		for _, s := range the_page.Plate.SnippetBefore {
+			body.WriteString(snippet(the_page, s))
 		}
 	}
 
-	inside := recurse_render(page, nil)
+	inside := recurse_render(the_page, nil)
 
-	if b, ok := page.Plate.Tokens["body"]; ok {
+	if b, ok := the_page.Plate.Tokens["body"]; ok {
 		body.WriteString(sub_content(b, inside))
 	} else {
 		body.WriteString(inside)
 	}
 
-	if len(page.Plate.SnippetAfter) > 0 {
-		for _, s := range page.Plate.SnippetAfter {
-			body.WriteString(snippet(page, s))
+	if len(the_page.Plate.SnippetAfter) > 0 {
+		for _, s := range the_page.Plate.SnippetAfter {
+			body.WriteString(snippet(the_page, s))
 		}
 	}
 
-	b := mapmap(body.String(), page.Vars, false)
+	return mapmap(body.String(), the_page.Vars, false)
+}
 
-	if page.List.IsCommittable {
-		SnippetList[name] = b
+func snippet(parent *Page, name string) string {
+	if v, ok := SnippetText[name]; ok {
+		return v
+	}
+	if v, ok := SnippetList[name]; ok {
+		return render_snippet(v)
+	}
+
+	path := filepath.Join("_data/snippets", name + ".ø")
+	the_page := &Page{}
+
+	the_page.Vars = make(map[string]string)
+	the_page.CurrentParent = parent
+
+	if !file_exists(path) {
+		warning("snippet " + name + " does not exist")
+		return ""
+	}
+
+	the_page.List = parser(the_page, load_file_bytes(path))
+
+	if the_page.IsDraft {
+		warning("cannot have draft snippet " + the_page.ID)
+	}
+
+	if plate_name, ok := the_page.Vars["plate"]; ok {
+		the_page.Plate = load_plate(plate_name)
+	} else {
+		the_page.Plate = default_plate
+	}
+
+	b := render_snippet(the_page)
+
+	if the_page.List.IsCommittable {
+		SnippetText[name] = b
+	} else {
+		SnippetList[name] = the_page
 	}
 
 	return b
@@ -358,7 +373,7 @@ func meta(the_page *Page) string {
 
 	// domain
 	canon_path := config.Domain + the_page.URLPath
-	meta_block.WriteString(sub_content(`<link rel="canonical" href="${v}"/>`, canon_path))
+	meta_block.WriteString(sub_content(`<link rel="canonical" href="${v}">`, canon_path))
 	meta_block.WriteString(sub_sprint(meta_source, "og:url", canon_path))
 
 	domain := check_slash(config.Domain)
