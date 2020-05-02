@@ -105,8 +105,8 @@ func (t Token_Type) String() string {
 type Token_List struct {
 	Tokens []*Token
 	Pos    int
-	IsCommittable bool
 	Level  int
+	IsCommittable bool
 }
 
 func (tree *Token_List) Peek() *Token {
@@ -604,7 +604,7 @@ func parser(page *Page, source []byte) *Token_List {
 		}
 	}
 
-	return &Token_List{list, 0, committable, 0}
+	return &Token_List{Tokens: list, IsCommittable:committable}
 }
 
 // dev

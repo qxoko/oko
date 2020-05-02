@@ -312,6 +312,7 @@ func snippet(parent *Page, name string) string {
 	}
 	if saved_page, ok := SnippetList[name]; ok {
 		saved_page.List.Reset()
+		saved_page.CurrentParent = parent
 		return render_snippet(saved_page)
 	}
 
