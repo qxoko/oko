@@ -83,6 +83,32 @@ func render(p *Page) {
 	write_file(p.OutputPath, content)
 }
 
+func skip_block(the_page *Page, active_block *Token) {
+	the_list := the_page.List
+
+	for {
+		tok := the_list.Next()
+
+		if tok == nil {
+			break
+		}
+
+		if tok.Type > tok_if_statements {
+			skip_block(the_page, active_block)
+			continue
+		}
+
+		if tok.Type == BLOCK_START {
+			skip_block(the_page, active_block)
+			continue
+		}
+
+		if tok.Type == BLOCK_CLOSE {
+			break
+		}
+	}
+}
+
 func recurse_render(the_page *Page, active_block *Token) string {
 	var content strings.Builder
 
@@ -100,16 +126,7 @@ func recurse_render(the_page *Page, active_block *Token) string {
 			if check_if_statement(the_page, tok) {
 				content.WriteString(recurse_render(the_page, tok))
 			} else {
-				level := the_list.Level
-				for {
-					tok := the_list.Next()
-					if tok == nil {
-						break
-					}
-					if tok.Type == BLOCK_CLOSE && the_list.Level == level - 1 {
-						break
-					}
-				}
+				skip_block(the_page, tok)
 			}
 			continue
 		}

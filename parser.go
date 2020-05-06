@@ -105,7 +105,6 @@ func (t Token_Type) String() string {
 type Token_List struct {
 	Tokens []*Token
 	Pos    int
-	Level  int
 	IsCommittable bool
 }
 
@@ -124,27 +123,12 @@ func (tree *Token_List) Next() *Token {
 	if tree.Pos == len(tree.Tokens) {
 		return nil
 	}
-
 	tree.Pos++
-
-	x := tree.Peek()
-
-	if x.Type == BLOCK_CLOSE {
-		tree.Level--
-	}
-	if x.Type > tok_if_statements {
-		tree.Level++
-	}
-	if x.Type == BLOCK_CODE || x.Type == BLOCK_START {
-		tree.Level++
-	}
-
-	return x
+	return tree.Peek()
 }
 
 func (tree *Token_List) Reset() {
-	tree.Pos   = 0
-	tree.Level = 0
+	tree.Pos = 0
 }
 
 
