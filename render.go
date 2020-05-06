@@ -164,7 +164,12 @@ func recurse_render(the_page *Page, active_block *Token) string {
 				continue
 
 			case SNIPPET:
-				content.WriteString(snippet(the_page, tok.Text))
+				if filepath.Ext(tok.Text) == "" {
+					content.WriteString(snippet(the_page, tok.Text))
+				} else {
+					// @todo error
+					content.WriteString(string(load_file_bytes(filepath.Join("_data/snippets", tok.Text))))
+				}
 				continue
 
 			case IMPORT:
@@ -415,8 +420,19 @@ func meta(the_page *Page) string {
 	}
 
 	// twitter
-	if c, ok := config.Meta["twitter"]; ok {
+	needs_media_card := false
+
+	if c, ok := config.Meta["twitter_creator"]; ok {
 		meta_block.WriteString(sub_sprint(meta_source, "twitter:creator", c))
+		needs_media_card = true
+	}
+
+	if c, ok := config.Meta["twitter_site"]; ok {
+		meta_block.WriteString(sub_sprint(meta_source, "twitter:site", c))
+		needs_media_card = true
+	}
+
+	if needs_media_card {
 		meta_block.WriteString(`<meta property="twitter:card" content="summary_large_image">`)
 	}
 
