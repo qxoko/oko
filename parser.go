@@ -429,7 +429,7 @@ func parser(page *Page, source []byte) *Token_List {
 			if test_input[c-1] == '{' {
 				str_ident := string(ident)
 
-				if str_ident == "code" { // @note string comp????
+				if str_ident == "code" {
 					lang := string(extract_identifier(test_input))
 
 					if len(lang) == 0 {
@@ -446,7 +446,7 @@ func parser(page *Page, source []byte) *Token_List {
 					var last  rune
 
 					for _, r := range test_input {
-						if r == '}' && last != '\\' && (last == '\n' || last == '\r') {
+						if r == '}' && last != '\\' {
 							break
 						}
 						last = r
@@ -466,7 +466,11 @@ func parser(page *Page, source []byte) *Token_List {
 
 					content = content[0:count-ws_count]
 
-					list = append(list, &Token{CODE_GUTS, string(content), n+1, nil})
+					code := string(content)
+					code  = strings.ReplaceAll(code, "\t", "    ")
+					code  = strings.ReplaceAll(code, "\\}", "}")
+
+					list = append(list, &Token{CODE_GUTS, code, n+1, nil})
 
 					input = test_input[count+1:]
 
