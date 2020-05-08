@@ -42,7 +42,7 @@ func load_config() *Config {
 	}
 
 	if config.Output == "" {
-		config.Output = "../public" // set a reasonable default
+		config.Output = "public" // set a reasonable default
 	}
 
 	if config.Favicon != "" {

@@ -41,6 +41,7 @@ type Page struct {
 	CurrentParent *Page // @hack
 
 	IsDraft    bool
+	IsIndex    bool
 	Format     File_Format
 
 	Plate      *Plate
@@ -68,8 +69,10 @@ func make_page(info *File_Info) *Page {
 
 	if info.ID == "index" {
 		new_page.URLPath = ""
+		new_page.IsIndex = true
 	} else {
 		new_page.URLPath = "/" + strings.Replace(info.ID, "/index", "", 1)
+		new_page.IsIndex = false
 	}
 
 	new_page.Vars["page_path"] = new_page.URLPath
@@ -329,11 +332,11 @@ func support_files(root string, age time.Time) []string {
 		name   := info.Name()
 		prefix := name[0:1]
 
-		if prefix == "." || prefix == "_" {
+		if prefix == "." || prefix == "_" || info.IsDir() {
 			return nil
 		}
 
-		if !info.IsDir() && info.ModTime().After(age) {
+		if info.ModTime().After(age) {
 			name = name[0:len(name) - len(filepath.Ext(name))]
 			list = append(list, name)
 		}

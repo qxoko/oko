@@ -13,7 +13,7 @@ var default_plate = &Plate {
 		"h2":        `<h2>${v}</h2>`,
 		"h3":        `<h3>${v}</h3>`,
 		"image":     `<img src="${v}">`,
-		"quote":     `<QUOTE src="${v}">`,
+		"quote":     `<blockquote>${v}</blockquote>`,
 		"divider":   `<hr>`,
 		"paragraph": `<p>${v}</p>`,
 		"ul":        `<ul>${v}</ul>`,
