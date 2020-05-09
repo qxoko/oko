@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"strings"
-	"path/filepath"
 	"encoding/json"
 )
 
@@ -11,6 +10,7 @@ type Config struct {
 	Domain  string
 	Output  string
 	Favicon string
+	Title   string
 
 	StyleRender string
 
@@ -46,19 +46,7 @@ func load_config() *Config {
 	}
 
 	if config.Favicon != "" {
-		// config.Include = append(config.Include, config.Favicon)
-
-		var text string
-
-		switch filepath.Ext(config.Favicon) {
-			case ".ico": text = `<link rel="icon" type="image/x-icon" href="${v}">`
-			case ".png": text = `<link rel="icon" type="image/png" href="${v}">`
-			case ".gif": text = `<link rel="icon" type="image/gif" href="${v}">`
-
-			default: panic("bad favicon format")
-		}
-
-		config.Favicon = sub_content(text, config.Favicon)
+		config.Favicon = make_favicon(config.Favicon)
 	}
 
 	config.StyleRender = render_style(config.Style, ``)

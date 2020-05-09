@@ -464,3 +464,16 @@ func sitemap() {
 
 	write_file(filepath.Join(config.Output, "sitemap.xml"), final)
 }
+
+func make_favicon(f string) string {
+	var tag string
+
+	switch filepath.Ext(f) {
+		case ".ico": tag = `<link rel="icon" type="image/x-icon" href="${v}">`
+		case ".png": tag = `<link rel="icon" type="image/png" href="${v}">`
+		case ".gif": tag = `<link rel="icon" type="image/gif" href="${v}">`
+		default: panic("bad favicon format")
+	}
+
+	return sub_content(tag, f)
+}
