@@ -140,14 +140,6 @@ func copy_file(src, dst string) {
 	}
 }
 
-func write_file(path, content string) {
-	err := ioutil.WriteFile(path, []byte(content), 0644)
-
-	if err != nil {
-		panic(err)
-	}
-}
-
 func delete_file(path string) {
 	err := os.RemoveAll(path)
 

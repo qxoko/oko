@@ -1,8 +1,10 @@
 package main
 
 import (
+	"os"
 	"fmt"
 	"sort"
+	"bufio"
 	"strings"
 	"path/filepath"
 )
@@ -21,8 +23,6 @@ var default_plate = &Plate {
 		"code":      `<pre><code>${v}</code></pre>`,
 	},
 }
-
-var page_source = `<!DOCTYPE html><html><head><title>${title}</title><meta charset="utf-8">${favicon}${_style}${_meta}${_script}</head><body>${body}</body></html>`
 
 func plate_entry(p *Plate, v string) string {
 	if value, ok := p.Tokens[v]; ok {
@@ -65,22 +65,43 @@ func render(p *Page) {
 		}
 	}
 
-	if _, ok := p.Vars["favicon"]; !ok {
-		p.Vars["favicon"] = config.Favicon
+	var favicon string
+	var title   string
+
+	if f, ok := p.Vars["favicon"]; ok {
+		favicon = make_favicon(f)
+	} else {
+		favicon = config.Favicon
 	}
 
-	p.Vars["body"]    = mapmap(body.String(), p.Vars, true)
-	p.Vars["_style"]  = render_style(p.Style,   p.Plate.StyleRender)
-	p.Vars["_script"] = render_script(p.Script, p.Plate.ScriptRender)
-	p.Vars["_meta"]   = meta(p)
+	if f, ok := p.Vars["title"]; ok {
+		title = f
+	} else {
+		title = config.Title
+	}
 
-	p.Vars["page_path"] = filepath.ToSlash("/" + p.ID)
+	file, err := os.Create(p.OutputPath)
 
-	content := mapmap(page_source, p.Vars, true)
+	if err != nil {
+		panic(err)
+	}
 
-	p.Vars["full_render"] = content
+	defer file.Close()
 
-	write_file(p.OutputPath, content)
+	writer := bufio.NewWriter(file)
+
+	writer.WriteString(`<!DOCTYPE html><html><head><title>`)
+	writer.WriteString(title)
+	writer.WriteString(`</title><meta charset="utf-8">`)
+	writer.WriteString(favicon)
+	writer.WriteString(render_style(p.Style,   p.Plate.StyleRender))
+	writer.WriteString(render_script(p.Script, p.Plate.ScriptRender))
+	writer.WriteString(meta(p))
+	writer.WriteString(`</head><body>`)
+	writer.WriteString(mapmap(body.String(), p.Vars, true))
+	writer.WriteString(`</body></html>`)
+
+	writer.Flush()
 }
 
 func skip_block(the_page *Page, active_block *Token) {
@@ -440,13 +461,8 @@ func meta(the_page *Page) string {
 }
 
 func sitemap() {
-	sitemap_source := `<?xml version="1.0" encoding="utf-8" standalone="yes"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">${v}</urlset>`
-
+	ordered    := make([]string, len(PageList))
 	url_source := `<url><loc>${v}${v}</loc></url>`
-
-	var url_block strings.Builder
-
-	ordered := make([]string, len(PageList))
 
 	for _, page := range PageList {
 		ordered = append(ordered, sub_sprint(url_source, config.Domain, page.URLPath))
@@ -456,13 +472,25 @@ func sitemap() {
 		return ordered[i] < ordered[j]
 	})
 
-	for _, page := range ordered {
-		url_block.WriteString(page)
+	file, err := os.Create(filepath.Join(config.Output, "sitemap.xml"))
+
+	if err != nil {
+		panic(err)
 	}
 
-	final := sub_content(sitemap_source, url_block.String())
+	defer file.Close()
 
-	write_file(filepath.Join(config.Output, "sitemap.xml"), final)
+	writer := bufio.NewWriter(file)
+
+	writer.WriteString(`<?xml version="1.0" encoding="utf-8" standalone="yes"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">`)
+
+	for _, page := range ordered {
+		writer.WriteString(page)
+	}
+
+	writer.WriteString(`</urlset>`)
+
+	writer.Flush()
 }
 
 func make_favicon(f string) string {
