@@ -442,13 +442,28 @@ func meta(the_page *Page) string {
 	// twitter
 	needs_media_card := false
 
-	if c, ok := config.Meta["twitter_creator"]; ok {
-		meta_block.WriteString(sub_sprint(meta_source, "twitter:creator", c))
+	var twitter_creator string
+	var twitter_site    string
+
+	if value, ok := the_page.Vars["twitter_creator"]; ok {
+		twitter_creator = value
+	} else if value, ok := config.Meta["twitter_creator"]; ok {
+		twitter_creator = value
+	}
+
+	if value, ok := the_page.Vars["twitter_site"]; ok {
+		twitter_site = value
+	} else if value, ok := config.Meta["twitter_site"]; ok {
+		twitter_site = value
+	}
+
+	if twitter_creator != "" {
+		meta_block.WriteString(sub_sprint(meta_source, "twitter:creator", twitter_creator))
 		needs_media_card = true
 	}
 
-	if c, ok := config.Meta["twitter_site"]; ok {
-		meta_block.WriteString(sub_sprint(meta_source, "twitter:site", c))
+	if twitter_site != "" {
+		meta_block.WriteString(sub_sprint(meta_source, "twitter:site", twitter_site))
 		needs_media_card = true
 	}
 
