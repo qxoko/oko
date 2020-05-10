@@ -1,15 +1,15 @@
 package main
 
 import (
+	"os"
 	"fmt"
-	"flag"
 	"sort"
 	"path/filepath"
 )
 
 var config *Config
 
-func do_pages(do_all_pages bool) {
+func do_pages() {
 	source, _   := walk(".", ".ø", ".html")
 	output, age := walk(config.Output, ".html")
 
@@ -19,7 +19,7 @@ func do_pages(do_all_pages bool) {
 	snippets := support_files("_data/snippets", age)
 	plates   := support_files("_data/plates",   age)
 
-	do_parse := (len(file_mod) + len(snippets) + len(plates)) > 0 || do_all_pages
+	do_parse := (len(file_mod) + len(snippets) + len(plates)) > 0 || config.DoAllPages
 
 	if do_parse {
 		for _, file := range source {
@@ -34,7 +34,7 @@ func do_pages(do_all_pages bool) {
 		}
 	}
 
-	if do_all_pages {
+	if config.DoAllPages {
 		file_mod  = make(map[string]*File_Info, len(source))
 
 		for _, f := range source {
@@ -205,16 +205,14 @@ func main() {
 		return
 	}
 
-	FLAG_ALL := flag.Bool("all", false, "")
 
-	flag.Parse()
-
-	if *FLAG_ALL {
-		do_pages(true)
-	} else {
-		do_pages(false)
+	for _, arg := range os.Args[1:] {
+		switch arg[1:] {
+			case "all": config.DoAllPages = true
+		}
 	}
 
+	do_pages()
 	do_static_files()
 
 	print_warnings()
