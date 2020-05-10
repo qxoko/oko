@@ -257,7 +257,6 @@ func recurse_render(the_page *Page, active_block *Token) string {
 	return content.String()
 }
 
-// @todo rewrite this for _speeeeed_
 func mapmap(source string, ref_map map[string]string, hard bool) string {
 	if strings.IndexRune(source, '$') < 0 {
 		return source
@@ -269,11 +268,11 @@ func mapmap(source string, ref_map map[string]string, hard bool) string {
 	for {
 		pos := strings.IndexRune(input, '$')
 
-		if !(pos >= 0) {
+		if pos < 0 {
 			break
 		}
 
-		if input[pos+1] == 123 { // "{"
+		if input[pos+1] == '{' {
 			end     := strings.IndexRune(input[pos+1:], '}')
 			end_pos := pos + end + 2
 
