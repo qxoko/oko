@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 )
 
-var config *Config
-
 func do_pages() {
 	source, _   := walk(".", ".ø", ".html")
 	output, age := walk(config.Output, ".html")
@@ -197,6 +195,8 @@ func do_static_files() {
 	}
 }
 
+var config *Config
+
 func main() {
 	config = load_config()
 
@@ -204,7 +204,6 @@ func main() {
 		fmt.Println("[ø] not an oko project!")
 		return
 	}
-
 
 	for _, arg := range os.Args[1:] {
 		switch arg[1:] {

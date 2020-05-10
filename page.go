@@ -244,7 +244,15 @@ func walk(root string, extensions ...string) (map[string]*File_Info, time.Time) 
 			list[file_id] = file_info
 
 		} else {
-			if skip || name == config.Output {
+			if name == config.Output {
+				skip = true
+			}
+
+			if name == root || strings.HasSuffix(root, name) {
+				skip = false
+			}
+
+			if skip {
 				return filepath.SkipDir
 			}
 		}
