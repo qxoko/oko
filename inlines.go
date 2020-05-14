@@ -21,3 +21,14 @@ func inlines(v string) string {
 
 	return string(input)
 }
+
+func strip_inlines(v string) string {
+	input := []byte(v)
+
+	input = links.ReplaceAll(input,   []byte(`$1`))
+	input = bolds.ReplaceAll(input,   []byte(`$1`))
+	input = italics.ReplaceAll(input, []byte(`$1`))
+	input = code.ReplaceAll(input,    []byte(`$1`))
+
+	return string(input)
+}

@@ -11,9 +11,9 @@ import (
 
 var default_plate = &Plate {
 	Tokens: map[string]string {
-		"h1":        `<h1>${v}</h1>`,
-		"h2":        `<h2>${v}</h2>`,
-		"h3":        `<h3>${v}</h3>`,
+		"h1":        `<h1 id="${v}">${v}</h1>`,
+		"h2":        `<h2 id="${v}">${v}</h2>`,
+		"h3":        `<h3 id="${v}">${v}</h3>`,
 		"image":     `<img src="${v}">`,
 		"quote":     `<blockquote>${v}</blockquote>`,
 		"divider":   `<hr>`,
@@ -242,12 +242,8 @@ func recurse_render(the_page *Page, active_block *Token) string {
 		p := plate_entry(plate, tok.Type.String())
 
 		if tok.Type < tok_headings {
-			// id := strings.ReplaceAll(strings.ToLower(strip_inlines(tok.Text)), " \t", "-")
-			// content.WriteString(sub_sprint(p, id, inlines(tok.Text)))
-
-			// @todo reinstate ids
-
-			content.WriteString(sub_content(p, inlines(tok.Text)))
+			id := strings.ReplaceAll(strings.ToLower(strip_inlines(tok.Text)), " ", "-")
+			content.WriteString(sub_sprint(p, id, inlines(tok.Text)))
 			continue
 		}
 
