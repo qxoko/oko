@@ -6,6 +6,7 @@ import (
 	"sort"
 	"bufio"
 	"strings"
+	"unicode"
 	"path/filepath"
 )
 
@@ -242,8 +243,10 @@ func recurse_render(the_page *Page, active_block *Token) string {
 		p := plate_entry(plate, tok.Type.String())
 
 		if tok.Type < tok_headings {
-			id := strings.ReplaceAll(strings.ToLower(strip_inlines(tok.Text)), " ", "-")
-			content.WriteString(sub_sprint(p, id, inlines(tok.Text)))
+			clean_text := strip_inlines(tok.Text)
+			dirty_text := inlines(tok.Text)
+
+			content.WriteString(sub_sprint(p, id_maker(clean_text), dirty_text))
 			continue
 		}
 
@@ -251,6 +254,23 @@ func recurse_render(the_page *Page, active_block *Token) string {
 	}
 
 	return content.String()
+}
+
+func id_maker(source string) string {
+	var new strings.Builder
+
+	for _, c := range source {
+		if unicode.IsLetter(c) || c == '-' {
+			new.WriteRune(c)
+			continue
+		}
+		if unicode.IsSpace(c) {
+			new.WriteRune('-')
+			continue
+		}
+	}
+
+	return strings.ToLower(new.String())
 }
 
 func mapmap(source string, ref_map map[string]string, hard bool) string {
