@@ -446,7 +446,7 @@ func parser(page *Page, source []byte) *Token_List {
 					var last  rune
 
 					for _, r := range test_input {
-						if r == '}' && last != '\\' {
+						if r == '}' && unicode.IsSpace(last) {
 							break
 						}
 						last = r
