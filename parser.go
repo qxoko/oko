@@ -442,8 +442,18 @@ func parser(page *Page, source []byte) *Token_List {
 
 					list = append(list, &Token{BLOCK_CODE, lang, n, nil})
 
-					var count int
-					var last  rune
+					var indent   int
+					var count    int
+					var last     rune
+					var ws_count int
+
+					for _, r := range test_input {
+						if r == '\t' || r == ' ' {
+							indent++
+						} else {
+							break
+						}
+					}
 
 					for _, r := range test_input {
 						if r == '}' && unicode.IsSpace(last) {
@@ -455,8 +465,6 @@ func parser(page *Page, source []byte) *Token_List {
 
 					content := test_input[0:count]
 
-					var ws_count int
-
 					for i := len(content); i > 0; i-- {
 						if !unicode.IsSpace(content[i-1]) {
 							break
@@ -467,6 +475,10 @@ func parser(page *Page, source []byte) *Token_List {
 					content = content[0:count-ws_count]
 
 					code := string(content)
+
+					// @hack replace me
+					code  = strings.ReplaceAll(code, "\n" + strings.Repeat("\t", indent), "\n")[indent:]
+
 					code  = strings.ReplaceAll(code, "\t", "    ")
 					code  = strings.ReplaceAll(code, "\\}", "}")
 
