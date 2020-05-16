@@ -14,7 +14,7 @@ var code    = regexp.MustCompile("`(.+?)`")
 func inlines(v string) string {
 	input := []byte(v)
 
-	input = links.ReplaceAll(input,   []byte(`<a href="$2">$1</a>`))
+	input = links.ReplaceAll(input,   []byte(`<a href='$2'>$1</a>`))
 	input = bolds.ReplaceAll(input,   []byte(`<b>$1</b>`))
 	input = italics.ReplaceAll(input, []byte(`<i>$1</i>`))
 	input = code.ReplaceAll(input,    []byte(`<code>$1</code>`))

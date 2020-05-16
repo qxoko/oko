@@ -15,7 +15,7 @@ const (
 )
 
 func vimeo(viewcode, ratio string, args []string) string {
-	iframe := sub_sprint(`<div class="video"><div class="video-container"${v}><iframe src="https://player.vimeo.com/video/${v}?color=0&title=0&byline=0&portrait=0" frameborder="0" allow="fullscreen" allowfullscreen></iframe></div></div>`, ratio, viewcode)
+	iframe := sub_sprint(`<div class='video'><div class='video-container'${v}><iframe src='https://player.vimeo.com/video/${v}?color=0&title=0&byline=0&portrait=0' frameborder='0' allow='fullscreen' allowfullscreen></iframe></div></div>`, ratio, viewcode)
 
 	if len(args) == 0 {
 		return iframe
@@ -46,7 +46,7 @@ func vimeo(viewcode, ratio string, args []string) string {
 }
 
 func youtube(viewcode, ratio string, args []string) string {
-	iframe := sub_sprint(`<div class="video"><div class="video-container"${v}><iframe src="https://www.youtube-nocookie.com/embed/${v}?rel=0&controls=1" frameborder="0" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div></div>`, ratio, viewcode)
+	iframe := sub_sprint(`<div class='video'><div class='video-container'${v}><iframe src='https://www.youtube-nocookie.com/embed/${v}?rel=0&controls=1' frameborder='0' allow='accelerometer; encrypted-media; gyroscope; picture-in-picture' allowfullscreen></iframe></div></div>`, ratio, viewcode)
 
 	if len(args) == 0 {
 		return iframe

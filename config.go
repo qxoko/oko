@@ -134,14 +134,14 @@ func render_style(list []string, def string) string {
 	if len(list) == 0 {
 		return def
 	}
-	return render_stackable(list, def, `<link rel="stylesheet" type="text/css" href="${v}"/>`)
+	return render_stackable(list, def, `<link rel='stylesheet' type='text/css' href='${v}'/>`)
 }
 
 func render_script(list []string, def string) string {
 	if len(list) == 0 {
 		return def
 	}
-	return render_stackable(list, def, `<script type="text/javascript" src="${v}" defer></script>`)
+	return render_stackable(list, def, `<script type='text/javascript' src='${v}' defer></script>`)
 }
 
 func render_stackable(list []string, def, source string) string {

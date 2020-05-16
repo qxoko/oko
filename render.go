@@ -12,10 +12,10 @@ import (
 
 var default_plate = &Plate {
 	Tokens: map[string]string {
-		"h1":        `<h1 id="${v}">${v}</h1>`,
-		"h2":        `<h2 id="${v}">${v}</h2>`,
-		"h3":        `<h3 id="${v}">${v}</h3>`,
-		"image":     `<img src="${v}">`,
+		"h1":        `<h1 id='${v}'>${v}</h1>`,
+		"h2":        `<h2 id='${v}'>${v}</h2>`,
+		"h3":        `<h3 id='${v}'>${v}</h3>`,
+		"image":     `<img src='${v}'>`,
 		"quote":     `<blockquote>${v}</blockquote>`,
 		"divider":   `<hr>`,
 		"paragraph": `<p>${v}</p>`,
@@ -93,7 +93,7 @@ func render(p *Page) {
 
 	writer.WriteString(`<!DOCTYPE html><html><head><title>`)
 	writer.WriteString(title)
-	writer.WriteString(`</title><meta charset="utf-8">`)
+	writer.WriteString(`</title><meta charset='utf-8'>`)
 	writer.WriteString(favicon)
 	writer.WriteString(render_style(p.Style,   p.Plate.StyleRender))
 	writer.WriteString(render_script(p.Script, p.Plate.ScriptRender))
@@ -415,8 +415,8 @@ func check_slash(s string) string {
 	return s
 }
 
-var meta_source  = `<meta property="${v}" content="${v}">`
-var meta_descrip = `<meta name="description" content="${v}">`
+var meta_source  = `<meta property='${v}' content='${v}'>`
+var meta_descrip = `<meta name='description' content='${v}'>`
 
 func meta(the_page *Page) string {
 	var meta_block strings.Builder
@@ -433,7 +433,7 @@ func meta(the_page *Page) string {
 
 	// domain
 	canon_path := config.Domain + the_page.URLPath
-	meta_block.WriteString(sub_content(`<link rel="canonical" href="${v}">`, canon_path))
+	meta_block.WriteString(sub_content(`<link rel='canonical' href='${v}'>`, canon_path))
 	meta_block.WriteString(sub_sprint(meta_source, "og:url", canon_path))
 
 	domain := check_slash(config.Domain)
@@ -484,7 +484,7 @@ func meta(the_page *Page) string {
 	}
 
 	if needs_media_card {
-		meta_block.WriteString(`<meta property="twitter:card" content="summary_large_image">`)
+		meta_block.WriteString(`<meta property='twitter:card' content='summary_large_image'>`)
 	}
 
 	return meta_block.String()
@@ -527,9 +527,9 @@ func make_favicon(f string) string {
 	var tag string
 
 	switch filepath.Ext(f) {
-		case ".ico": tag = `<link rel="icon" type="image/x-icon" href="${v}">`
-		case ".png": tag = `<link rel="icon" type="image/png" href="${v}">`
-		case ".gif": tag = `<link rel="icon" type="image/gif" href="${v}">`
+		case ".ico": tag = `<link rel='icon' type='image/x-icon' href='${v}'>`
+		case ".png": tag = `<link rel='icon' type='image/png' href='${v}'>`
+		case ".gif": tag = `<link rel='icon' type='image/gif' href='${v}'>`
 		default: panic("bad favicon format")
 	}
 
