@@ -428,10 +428,14 @@ func meta(the_page *Page) string {
 		the_page.Meta["title"] = the_page.Vars["title"]
 	}
 	if _, ok := the_page.Meta["description"]; !ok {
-		the_page.Meta["description"] = config.Meta["description"]
+		if v, ok := config.Meta["description"]; ok {
+			the_page.Meta["description"] = v
+		}
 	}
 	if _, ok := the_page.Meta["image"]; !ok {
-		the_page.Meta["image"] = config.Meta["image"]
+		if v, ok := config.Meta["image"]; ok {
+			the_page.Meta["image"] = v
+		}
 	}
 
 	// domain
