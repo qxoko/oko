@@ -59,6 +59,10 @@ func do_pages() {
 		}
 	}
 
+	if !path_exists(config.Output) {
+		mkdir(config.Output)
+	}
+
 	for path, _ := range path_mod {
 		mkdir(filepath.Join(config.Output, path))
 	}
