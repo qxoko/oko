@@ -17,6 +17,9 @@ const (
 	H1
 	H2
 	H3
+	H4
+	H5
+	H6
 
 	tok_headings
 
@@ -63,6 +66,9 @@ var token_names = [...]string {
 	"h1",
 	"h2",
 	"h3",
+	"h4",
+	"h5",
+	"h6",
 
 	"tok_headings",
 
@@ -292,6 +298,9 @@ func parser(page *Page, source []byte) *Token_List {
 				case 1: heading = H1
 				case 2: heading = H2
 				case 3: heading = H3
+				case 4: heading = H4
+				case 5: heading = H5
+				case 6: heading = H6
 			}
 
 			list = append(list, &Token{heading, string(text), line_no(input), nil})
