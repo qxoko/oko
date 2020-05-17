@@ -36,7 +36,6 @@ type Page struct {
 
 	Style      []string
 	Script     []string
-	Tags       []string
 
 	CurrentParent *Page // @hack
 
@@ -46,8 +45,10 @@ type Page struct {
 
 	Plate      *Plate
 	List       *Token_List
+
 	Vars       map[string]string
 	Meta       map[string]string
+	Tags       map[string]bool
 }
 
 func make_page(info *File_Info) *Page {
@@ -66,6 +67,7 @@ func make_page(info *File_Info) *Page {
 
 	new_page.Vars = make(map[string]string, 8)
 	new_page.Meta = make(map[string]string, 8)
+	new_page.Tags = make(map[string]bool,   8)
 
 	if info.ID == "index" {
 		new_page.URLPath = ""
