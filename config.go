@@ -42,6 +42,10 @@ func load_config() *Config {
 		panic("no domain name in _data/oko.json!")
 	}
 
+	if !strings.HasPrefix(config.Domain, "https://") {
+		config.Domain = "https://" + config.Domain
+	}
+
 	if config.Output == "" {
 		config.Output = "public" // set a reasonable default
 	}
