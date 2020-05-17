@@ -67,8 +67,16 @@ func do_pages() {
 		mkdir(filepath.Join(config.Output, path))
 	}
 
-	if config.Sitemap && len(file_mod) > 0 {
-		sitemap()
+	sitemap_path := filepath.Join(config.Output, `sitemap.xml`)
+
+	if config.Sitemap {
+		if !file_exists(sitemap_path) || len(file_mod) > 0 {
+			sitemap(sitemap_path)
+		}
+	} else {
+		if file_exists(sitemap_path) {
+			delete_file(sitemap_path)
+		}
 	}
 
 	report_list := make([]string, 0, len(file_mod))

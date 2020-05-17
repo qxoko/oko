@@ -490,7 +490,7 @@ func meta(the_page *Page) string {
 	return meta_block.String()
 }
 
-func sitemap() {
+func sitemap(path string) {
 	ordered    := make([]string, len(PageList))
 	url_source := `<url><loc>${v}${v}</loc></url>`
 
@@ -502,7 +502,7 @@ func sitemap() {
 		return ordered[i] < ordered[j]
 	})
 
-	file, err := os.Create(filepath.Join(config.Output, "sitemap.xml"))
+	file, err := os.Create(path)
 
 	if err != nil {
 		panic(err)
