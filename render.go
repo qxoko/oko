@@ -263,11 +263,11 @@ func id_maker(source string) string {
 	var new strings.Builder
 
 	for _, c := range source {
-		if unicode.IsLetter(c) || c == '-' {
+		if unicode.IsLetter(c) || unicode.IsNumber(c) {
 			new.WriteRune(c)
 			continue
 		}
-		if unicode.IsSpace(c) {
+		if unicode.IsSpace(c) || c == '-' {
 			new.WriteRune('-')
 			continue
 		}
