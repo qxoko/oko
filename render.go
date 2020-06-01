@@ -210,7 +210,7 @@ func recurse_render(the_page *Page, active_block *Token) string {
 
 				if v, ok := plate.Tokens[t]; ok {
 					if p, ok := PageList[n[0]]; ok {
-						content.WriteString(mapmap(v, p.Vars, false))
+						content.WriteString(inlines(mapmap(v, p.Vars, true)))
 					} else {
 						warning("skipped import " + n[0])
 					}
