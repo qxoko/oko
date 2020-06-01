@@ -15,6 +15,7 @@ type Config struct {
 	StyleRender string
 
 	DoAllPages bool `json:"do_all_pages"`
+	ShowDrafts bool `json:"show_drafts"`
 	Sitemap bool
 
 	Style   []string

@@ -24,6 +24,8 @@ type File_Info struct {
 	Path string
 	Dir  string
 
+	Exclude bool
+
 	Format File_Format
 	Mod    time.Time
 }
@@ -281,7 +283,9 @@ func compare_files(source, output map[string]*File_Info) (map[string]*File_Info,
 	}
 
 	for _, src := range output {
-		if _, ok := source[src.ID]; !ok {
+		if f, ok := source[src.ID]; !ok {
+			del[src.ID] = src
+		} else if f.Exclude {
 			del[src.ID] = src
 		}
 	}

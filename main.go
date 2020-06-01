@@ -11,26 +11,30 @@ func do_pages() {
 	source, _   := walk(".", ".ø", ".html")
 	output, age := walk(config.Output, ".html")
 
+	for _, file := range source {
+		if file.Format != OKO {
+			continue
+		}
+
+		the_page := make_page(file)
+		bytes    := load_file_bytes(the_page.SourcePath)
+
+		the_page.List = parser(the_page, bytes)
+
+		if config.ShowDrafts {
+			continue
+		}
+
+		if the_page.IsDraft {
+			file.Exclude = true
+		}
+	}
+
 	file_mod, file_del := compare_files(source, output)
 	path_mod, path_del := compare_dirs(source, output, file_mod, file_del)
 
 	snippets := support_files("_data/snippets", age)
 	plates   := support_files("_data/plates",   age)
-
-	do_parse := (len(file_mod) + len(snippets) + len(plates)) > 0 || config.DoAllPages
-
-	if do_parse {
-		for _, file := range source {
-			if file.Format != OKO {
-				continue
-			}
-
-			the_page := make_page(file)
-			bytes    := load_file_bytes(the_page.SourcePath)
-
-			the_page.List = parser(the_page, bytes)
-		}
-	}
 
 	if config.DoAllPages {
 		file_mod  = make(map[string]*File_Info, len(source))
@@ -89,7 +93,7 @@ func do_pages() {
 
 		page := PageList[ID]
 
-		if page.IsDraft {
+		if page.IsDraft && !config.ShowDrafts {
 			continue
 		}
 
@@ -219,7 +223,8 @@ func main() {
 
 	for _, arg := range os.Args[1:] {
 		switch arg[1:] {
-			case "all": config.DoAllPages = true
+			case "all":    config.DoAllPages = true
+			case "drafts": config.ShowDrafts = true
 		}
 	}
 
