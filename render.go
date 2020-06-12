@@ -230,7 +230,10 @@ func recurse_render(the_page *Page, active_block *Token) string {
 
 			case BLOCK_CODE:
 				tok = the_list.Next()
-				content.WriteString(sub_content(plate_entry(plate, "code"), tok.Text))
+
+				text := inline_code_sub(tok.Text)
+
+				content.WriteString(sub_content(plate_entry(plate, "code"), text))
 				continue
 
 			case BLOCK_START:

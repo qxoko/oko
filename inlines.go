@@ -11,6 +11,8 @@ var bolds   = regexp.MustCompile(`\*(.+?)\*`)
 var links   = regexp.MustCompile(`\[(.+?)\]\((.+?)\)`)
 var code    = regexp.MustCompile("`(.+?)`")
 
+var inline  = regexp.MustCompile(`c\.(.+?){(.+?)}`)
+
 func inlines(v string) string {
 	input := []byte(v)
 
@@ -29,6 +31,14 @@ func strip_inlines(v string) string {
 	input = bolds.ReplaceAll(input,   []byte(`$1`))
 	input = italics.ReplaceAll(input, []byte(`$1`))
 	input = code.ReplaceAll(input,    []byte(`$1`))
+
+	return string(input)
+}
+
+func inline_code_sub(v string) string {
+	input := []byte(v)
+
+	input = inline.ReplaceAll(input, []byte(`<span class='c $1'>$2</span>`))
 
 	return string(input)
 }
