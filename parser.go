@@ -413,14 +413,15 @@ func parser(page *Page, source []byte) *Token_List {
 					case "script":
 						page.Script = append(page.Script, v)
 
-					case "tags":
+					/*case "tags":
 						for _, t := range strings.Fields(v) {
 							page.Tags[t] = true
-						}
+						}*/
 
 					case "draft":
 						if v == "true" {
 							page.IsDraft = true
+							page.Vars["draft"] = "true"
 						}
 
 					default:

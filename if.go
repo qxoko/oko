@@ -40,10 +40,10 @@ func page(the_page *Page, tok *Token) bool {
 			if len(the_page.Script) > 0 {
 				return true
 			}
-		case "tags":
+		/*case "tags":
 			if len(the_page.Tags) > 0 {
 				return true
-			}
+			}*/
 		default:
 			if v, ok := the_page.Vars[tok.Text]; ok {
 				if v != "false" {
