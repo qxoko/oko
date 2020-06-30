@@ -18,8 +18,11 @@ type Config struct {
 	ShowDrafts bool `json:"show_drafts"`
 	Sitemap bool
 
-	Style   []string
-	Include []string
+	Style      []string
+	Include    []string
+	Extensions []string
+
+	ImagePrefix string `json:"image_path_prefix"`
 
 	Meta map[string]string
 }
@@ -53,6 +56,23 @@ func load_config() *Config {
 
 	if config.Favicon != "" {
 		config.Favicon = make_favicon(config.Favicon)
+	}
+
+	if len(config.Extensions) == 0 {
+		config.Extensions = []string{`.ø`, `.html`}
+	} else {
+		has_html := false
+
+		for _, e := range config.Extensions {
+			if e == `.html` {
+				has_html = true
+				break
+			}
+		}
+
+		if !has_html {
+			config.Extensions = append(config.Extensions, `.html`)
+		}
 	}
 
 	config.StyleRender = render_style(config.Style, ``)

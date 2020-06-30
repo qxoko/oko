@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"fmt"
 	"sort"
 	"bufio"
 	"strings"
@@ -35,7 +34,6 @@ func plate_entry(p *Plate, v string) string {
 	if value, ok := default_plate.Tokens[v]; ok {
 		return value
 	}
-	fmt.Println("bad token in plate", v)
 	return ""
 }
 
@@ -256,10 +254,22 @@ func recurse_render(the_page *Page, active_block *Token) string {
 			continue
 		}
 
+		if tok.Type == IMAGE {
+			content.WriteString(sub_content(p, image_checker(tok.Text)))
+			continue
+		}
+
 		content.WriteString(sub_content(p, tok.Text))
 	}
 
 	return content.String()
+}
+
+func image_checker(v string) string {
+	if !strings.HasPrefix(v, `http`) && !strings.HasPrefix(v, config.ImagePrefix) {
+		v = config.ImagePrefix + v
+	}
+	return v
 }
 
 func id_maker(source string) string {
@@ -315,6 +325,9 @@ func mapmap(source string, ref_map map[string]string, hard bool) string {
 		id := variable[2:len(variable)-1]
 
 		if value, ok := ref_map[id]; ok {
+			if strings.Contains(id, `image`) { // do image things in variables
+				value = image_checker(value)
+			}
 			source = strings.ReplaceAll(source, variable, value)
 		} else if hard {
 			source = strings.ReplaceAll(source, variable, "")

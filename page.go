@@ -219,6 +219,12 @@ func walk(root string, extensions ...string) (map[string]*File_Info, time.Time) 
 					file_format = OKO
 				}
 
+				if file_ext == ".txt" {
+					if name == "robots.txt" {
+						return nil
+					}
+				}
+
 				for _, e := range extensions {
 					if e == file_ext {
 						is_match = true

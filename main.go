@@ -8,7 +8,7 @@ import (
 )
 
 func do_pages() {
-	source, _   := walk(".", ".ø", ".html")
+	source, _   := walk(".", config.Extensions...)
 	output, age := walk(config.Output, ".html")
 
 	for _, file := range source {
