@@ -46,6 +46,7 @@ func render(p *Page) {
 	}
 
 	var body strings.Builder
+	var body_inside strings.Builder
 
 	if len(p.Plate.SnippetBefore) > 0 {
 		for _, s := range p.Plate.SnippetBefore {
@@ -53,12 +54,24 @@ func render(p *Page) {
 		}
 	}
 
-	inside := recurse_render(p, nil)
+	if len(p.Plate.BodyBefore) > 0 {
+		for _, s := range p.Plate.BodyBefore {
+			body_inside.WriteString(snippet(p, s))
+		}
+	}
+
+	body_inside.WriteString(recurse_render(p, nil))
+
+	if len(p.Plate.BodyAfter) > 0 {
+		for _, s := range p.Plate.BodyAfter {
+			body_inside.WriteString(snippet(p, s))
+		}
+	}
 
 	if b, ok := p.Plate.Tokens["body"]; ok {
-		body.WriteString(sub_content(b, inside))
+		body.WriteString(sub_content(b, body_inside.String()))
 	} else {
-		body.WriteString(inside)
+		body.WriteString(body_inside.String())
 	}
 
 	if len(p.Plate.SnippetAfter) > 0 {

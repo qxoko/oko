@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"strings"
 	"encoding/json"
 )
@@ -86,6 +86,9 @@ type Plate struct {
 	SnippetBefore []string `json:"snippet_before"`
 	SnippetAfter  []string `json:"snippet_after"`
 
+	BodyBefore    []string `json:"body_before"`
+	BodyAfter     []string `json:"body_after"`
+
 	Script        []string
 	Style         []string
 
@@ -112,7 +115,15 @@ func load_plate(name string) *Plate {
 	err  := json.Unmarshal(load_file_bytes(path), &plate)
 
 	if err != nil {
-		log.Fatalf("failed to parse JSON in %q\nerror: %q", path, err)
+		panic(fmt.Sprintf("failed to parse JSON in %q\nerror: %q", path, err))
+	}
+
+	// do this in case the child plate has no
+	// need for tokens - the map doesn't get
+	// initialised and the combining step fails
+	// with an unhelpful error
+	if plate.Tokens == nil {
+		plate.Tokens = make(map[string]string)
 	}
 
 	if plate.Extends != "" {
@@ -121,7 +132,7 @@ func load_plate(name string) *Plate {
 		err  := json.Unmarshal(load_file_bytes(plate_path(plate.Extends)), &extend)
 
 		if err != nil {
-			log.Fatalf("failed to parse JSON in %q\nerror: %q", path, err)
+			panic(fmt.Sprintf("failed to parse JSON in %q\nerror: %q", path, err))
 		}
 
 		// merge
