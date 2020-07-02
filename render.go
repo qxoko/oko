@@ -236,7 +236,12 @@ func recurse_render(the_page *Page, active_block *Token) string {
 
 			case BLOCK_START:
 				block_plate   := plate_entry(plate, tok.Text)
-				child_content := sub_content(block_plate, recurse_render(the_page, tok))
+				child_content := recurse_render(the_page, tok)
+
+				if block_plate != "" {
+					child_content = sub_content(block_plate, child_content)
+				}
+
 				content.WriteString(mapmap(child_content, tok.Vars, false))
 				continue
 
