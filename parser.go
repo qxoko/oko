@@ -614,6 +614,20 @@ func parser(page *Page, source []byte) *Token_List {
 				DepTree[name] = append(DepTree[name], page.ID)
 			}
 		}
+
+		if len(plate.BodyBefore) > 0 {
+			for _, s := range plate.BodyBefore {
+				name := "snip_" + s
+				DepTree[name] = append(DepTree[name], page.ID)
+			}
+		}
+
+		if len(plate.BodyAfter) > 0 {
+			for _, s := range plate.BodyAfter {
+				name := "snip_" + s
+				DepTree[name] = append(DepTree[name], page.ID)
+			}
+		}
 	}
 
 	return &Token_List{Tokens: list, IsCommittable:committable}
