@@ -283,6 +283,9 @@ func recurse_render(the_page *Page, active_block *Token) string {
 	return content.String()
 }
 
+// adds media_prefix_path (oko.json) to
+// images unless image is external or already
+// has prefix
 func image_checker(v string) string {
 	if !strings.HasPrefix(v, `http`) && !strings.HasPrefix(v, config.ImagePrefix) {
 		v = config.ImagePrefix + v
@@ -375,30 +378,43 @@ func sub_sprint(source string, v ...string) string {
 var SnippetText = make(map[string]string)
 var SnippetList = make(map[string]*Page)
 
-func render_snippet(the_page *Page) string {
+func render_snippet(p *Page) string {
 	var body strings.Builder
+	var body_inside strings.Builder
 
-	if len(the_page.Plate.SnippetBefore) > 0 {
-		for _, s := range the_page.Plate.SnippetBefore {
-			body.WriteString(snippet(the_page, s))
+	if len(p.Plate.SnippetBefore) > 0 {
+		for _, s := range p.Plate.SnippetBefore {
+			body.WriteString(snippet(p, s))
 		}
 	}
 
-	inside := recurse_render(the_page, nil)
+	if len(p.Plate.BodyBefore) > 0 {
+		for _, s := range p.Plate.BodyBefore {
+			body_inside.WriteString(snippet(p, s))
+		}
+	}
 
-	if b, ok := the_page.Plate.Tokens["body"]; ok {
-		body.WriteString(sub_content(b, inside))
+	body_inside.WriteString(recurse_render(p, nil))
+
+	if len(p.Plate.BodyAfter) > 0 {
+		for _, s := range p.Plate.BodyAfter {
+			body_inside.WriteString(snippet(p, s))
+		}
+	}
+
+	if b, ok := p.Plate.Tokens["body"]; ok {
+		body.WriteString(sub_content(b, body_inside.String()))
 	} else {
-		body.WriteString(inside)
+		body.WriteString(body_inside.String())
 	}
 
-	if len(the_page.Plate.SnippetAfter) > 0 {
-		for _, s := range the_page.Plate.SnippetAfter {
-			body.WriteString(snippet(the_page, s))
+	if len(p.Plate.SnippetAfter) > 0 {
+		for _, s := range p.Plate.SnippetAfter {
+			body.WriteString(snippet(p, s))
 		}
 	}
 
-	return mapmap(body.String(), the_page.Vars, false)
+	return mapmap(body.String(), p.Vars, false)
 }
 
 func snippet(parent *Page, name string) string {
