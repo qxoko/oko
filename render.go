@@ -176,7 +176,7 @@ func recurse_render(the_page *Page, active_block *Token) string {
 				render_error(the_page, tok, "parser error")
 
 			case FUNCTION:
-				render_error(the_page, tok, "functions unsupported")
+				content.WriteString(do_script(the_page, tok.Text))
 
 			case LIST_ENTRY:
 				var list_buffer strings.Builder
