@@ -25,6 +25,7 @@ type Config struct {
 	ImagePrefix string `json:"image_path_prefix"`
 
 	Meta map[string]string
+	Vars map[string]string
 }
 
 func load_config() *Config {
@@ -56,6 +57,10 @@ func load_config() *Config {
 
 	if config.Favicon != "" {
 		config.Favicon = make_favicon(config.Favicon)
+	}
+
+	if config.Vars == nil {
+		config.Vars = make(map[string]string, 8)
 	}
 
 	if len(config.Extensions) == 0 {
