@@ -4,6 +4,7 @@ import (
 	"os"
 	"fmt"
 	"sort"
+	"strings"
 	"path/filepath"
 )
 
@@ -83,9 +84,24 @@ func do_pages() {
 		}
 	}
 
-	report_list := make([]string, 0, len(file_mod))
+	file_mod_ordered := make([]*File_Info, 0, len(file_mod))
 
-	for ID, file := range file_mod {
+	for _, file := range file_mod {
+		if file.Exclude {
+			continue
+		}
+
+		file_mod_ordered = append(file_mod_ordered, file)
+	}
+
+	sort.SliceStable(file_mod_ordered, func(i, j int) bool {
+		one, two := file_mod_ordered[i].ID, file_mod_ordered[j].ID
+		return one < two || strings.Contains(one, `index`)
+	})
+
+	for _, file := range file_mod_ordered {
+		ID := file.ID
+
 		if file.Format == HTML {
 			copy_file(file.Path, filepath.Join(config.Output, file.Path))
 			continue
@@ -96,8 +112,6 @@ func do_pages() {
 		if page.IsDraft && !config.ShowDrafts {
 			continue
 		}
-
-		report_list = append(report_list, ID)
 
 		render(page)
 	}
@@ -110,15 +124,16 @@ func do_pages() {
 		delete_file(filepath.Join(config.Output, path))
 	}
 
-	if len(report_list) > 0 {
-		sort.SliceStable(report_list, func(i, j int) bool {
-			return report_list[i] < report_list[j]
+	if len(file_mod_ordered) > 0 {
+		sort.SliceStable(file_mod_ordered, func(i, j int) bool {
+			one, two := file_mod_ordered[i].ID, file_mod_ordered[j].ID
+			return one < two
 		})
 
 		fmt.Println("[ø] updated pages\n")
 
-		for _, file := range report_list {
-			fmt.Println("   ", file)
+		for _, file := range file_mod_ordered {
+			fmt.Println("   ", file.ID)
 		}
 
 		fmt.Println()
