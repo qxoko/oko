@@ -214,6 +214,21 @@ func do_static_files() {
 var config *Config
 
 func main() {
+	do_new_project := false
+
+	for _, arg := range os.Args[1:] {
+		if arg == "create" {
+			do_new_project = true
+			break
+		}
+	}
+
+	if do_new_project {
+		make_project()
+		fmt.Println(`created project!`)
+		return
+	}
+
 	config = load_config()
 
 	if config == nil {
