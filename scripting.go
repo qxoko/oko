@@ -1,5 +1,3 @@
-// +build scripting
-
 package main
 
 import (
@@ -18,15 +16,25 @@ func do_script(page *Page, name string) string {
 
 	file := string(load_file_bytes(path))
 
+	// new js instance
 	vm := otto.New()
 
+	// register current page data into instance
 	page_data, _ := vm.Object(`page = {}`)
-
 	page_data.Set("Vars",   page.Vars)
 	page_data.Set("Tokens", page.List.Tokens)
 
+	// register project data into instance
 	vm.Set("project", config)
 
+	// inject Token_Type enums
+	token_data, _ := vm.Object(`token_type = {}`)
+
+	for n, str := range token_names {
+		token_data.Set(str, n)
+	}
+
+	// execute instance
 	_, err := vm.Run(file)
 
 	if err != nil {
