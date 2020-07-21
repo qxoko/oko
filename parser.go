@@ -61,45 +61,45 @@ type Token struct {
 }
 
 var token_names = [...]string {
-	"Tok_Begin",
+	"tok_begin",
 
-	"H1",
-	"H2",
-	"H3",
-	"H4",
-	"H5",
-	"H6",
+	"h1",
+	"h2",
+	"h3",
+	"h4",
+	"h5",
+	"h6",
 
-	"Headings",
+	"headings",
 
-	"QUOTE",
-	"PARAGRAPH",
-	"LIST_ENTRY",
+	"quote",
+	"paragraph",
+	"list_entry",
 
-	"Inline_Format",
+	"inline_format",
 
-	"ERROR",
-	"IMAGE",
-	"TOKEN",
-	"VIDEO",
-	"IMPORT",
-	"SNIPPET",
-	"DIVIDER",
-	"FUNCTION",
-	"BLOCK_CODE",
-	"BLOCK_START",
-	"BLOCK_CLOSE",
-	"CODE_GUTS",
-	"HTML_SNIPPET",
+	"error",
+	"image",
+	"token",
+	"video",
+	"import",
+	"snippet",
+	"divider",
+	"function",
+	"block_code",
+	"block_start",
+	"block_close",
+	"code_guts",
+	"html_snippet",
 
-	"If_Statements",
+	"if_statements",
 
-	"IF_SCOPE_PROJECT",
-	"IF_SCOPE_PROJECT_NOT",
-	"IF_SCOPE_PARENT",
-	"IF_SCOPE_PARENT_NOT",
-	"IF_SCOPE_PAGE",
-	"IF_SCOPE_PAGE_NOT",
+	"if_scope_project",
+	"if_scope_project_not",
+	"if_scope_parent",
+	"if_scope_parent_not",
+	"if_scope_page",
+	"if_scope_page_not",
 }
 
 func (t Token_Type) String() string {
@@ -323,6 +323,9 @@ func parser(page *Page, source []byte) *Token_List {
 			name  := strings.SplitN(t, " ", 2)[0]
 
 			DepTree[name] = append(DepTree[name], page.ID)
+
+			// circular hack
+			DepTree[page.ID] = append(DepTree[page.ID], name)
 
 			list = append(list, &Token{IMPORT, t, line_no(input), nil})
 			continue
