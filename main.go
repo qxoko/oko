@@ -229,17 +229,20 @@ func do_static_files() {
 }
 
 func main() {
-	do_new_project := false
+	new_config   := false
+	do_all_pages := false
+	show_drafts  := false
 
 	for _, arg := range os.Args[1:] {
-		if arg == "create" {
-			do_new_project = true
-			break
+		switch arg[1:] {
+			case "new-config": new_config   = true
+			case "all":        do_all_pages = true
+			case "drafts":     show_drafts  = true
 		}
 	}
 
-	if do_new_project {
-		make_new_project()
+	if new_config {
+		make_new_config_file()
 		fmt.Println(`created project!`)
 		return
 	}
@@ -251,11 +254,12 @@ func main() {
 		return
 	}
 
-	for _, arg := range os.Args[1:] {
-		switch arg[1:] {
-			case "all":    config.DoAllPages = true
-			case "drafts": config.ShowDrafts = true
-		}
+	// set config from argument flags
+	if do_all_pages {
+		config.DoAllPages = true
+	}
+	if show_drafts {
+		config.ShowDrafts = true
 	}
 
 	do_pages()

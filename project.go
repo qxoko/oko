@@ -85,7 +85,7 @@ func load_config() *Config {
 	return &config
 }
 
-func make_new_project() {
+func make_new_config_file() {
 	template := []byte(`{
 	"domain": "https://website.com",
 	"favicon": "/favicon.png",
@@ -99,10 +99,6 @@ func make_new_project() {
 		"description": "Default description for search engines and embeds"
 	}
 }`)
-
-	os.MkdirAll(`_data/plates`,    os.ModePerm)
-	os.MkdirAll(`_data/snippets`,  os.ModePerm)
-	os.MkdirAll(`_data/functions`, os.ModePerm)
 
 	f, err := os.Create(`_data/oko.json`)
 	defer f.Close()
