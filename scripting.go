@@ -27,6 +27,9 @@ func do_script(page *Page, name string) string {
 	// register project data into instance
 	vm.Set("project", config)
 
+	// register page_list
+	vm.Set("page_list", PageList)
+
 	// inject Token_Type enums
 	token_data, _ := vm.Object(`token_type = {}`)
 
