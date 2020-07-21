@@ -5,16 +5,43 @@ import (
 	"strings"
 	"unicode"
 	"strconv"
+	"path/filepath"
 )
 
-type Service int
+// adds media_prefix_path (oko.json) to
+// images unless image is external or already
+// has prefix
+func image_checker(v string) string {
+	if !strings.HasPrefix(v, `http`) && !strings.HasPrefix(v, config.ImagePrefix) {
+		v = config.ImagePrefix + v
+	}
+	return v
+}
+
+func make_favicon(f string) string {
+	var tag string
+
+	switch filepath.Ext(f) {
+		case ".ico": tag = `<link rel='icon' type='image/x-icon' href='${v}'>`
+		case ".png": tag = `<link rel='icon' type='image/png' href='${v}'>`
+		case ".gif": tag = `<link rel='icon' type='image/gif' href='${v}'>`
+		default: panic("bad favicon format")
+	}
+
+	return sub_content(tag, f)
+}
+
+//
+// External Services
+//
+type Media_Service int
 
 const (
-	YOUTUBE Service = iota
+	YOUTUBE Media_Service = iota
 	VIMEO
 )
 
-func vimeo(viewcode, ratio string, args []string) string {
+func media_vimeo(viewcode, ratio string, args []string) string {
 	iframe := sub_sprint(`<div class='video'><div class='video-container'${v}><iframe src='https://player.vimeo.com/video/${v}?color=0&title=0&byline=0&portrait=0' frameborder='0' allow='fullscreen' allowfullscreen></iframe></div></div>`, ratio, viewcode)
 
 	if len(args) == 0 {
@@ -45,7 +72,7 @@ func vimeo(viewcode, ratio string, args []string) string {
 	return iframe
 }
 
-func youtube(viewcode, ratio string, args []string) string {
+func media_youtube(viewcode, ratio string, args []string) string {
 	iframe := sub_sprint(`<div class='video'><div class='video-container'${v}><iframe src='https://www.youtube-nocookie.com/embed/${v}?rel=0&controls=1' frameborder='0' allow='accelerometer; encrypted-media; gyroscope; picture-in-picture' allowfullscreen></iframe></div></div>`, ratio, viewcode)
 
 	if len(args) == 0 {
@@ -96,8 +123,8 @@ func media(s string) string {
 	}
 
 	switch service {
-		case YOUTUBE: return youtube(viewcode, ratio, args)
-		case VIMEO:   return vimeo(viewcode,   ratio, args)
+		case YOUTUBE: return media_youtube(viewcode, ratio, args)
+		case VIMEO:   return media_vimeo(viewcode,   ratio, args)
 	}
 
 	return ""

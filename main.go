@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 )
 
+var config *Config
+
 func do_pages() {
 	source, _   := walk(".", config.Extensions...)
 	output, age := walk(config.Output, ".html")
@@ -226,8 +228,6 @@ func do_static_files() {
 	}
 }
 
-var config *Config
-
 func main() {
 	do_new_project := false
 
@@ -239,7 +239,7 @@ func main() {
 	}
 
 	if do_new_project {
-		make_project()
+		make_new_project()
 		fmt.Println(`created project!`)
 		return
 	}

@@ -1,6 +1,6 @@
 package main
 
-func project(tok *Token) bool {
+func if_project_value(tok *Token) bool {
 	switch tok.Text {
 		case "domain":
 			if config.Domain != "" {
@@ -30,7 +30,7 @@ func project(tok *Token) bool {
 	return false
 }
 
-func page(the_page *Page, tok *Token) bool {
+func if_page_value(the_page *Page, tok *Token) bool {
 	switch tok.Text {
 		case "style":
 			if len(the_page.Style) > 0 {
@@ -57,12 +57,12 @@ func page(the_page *Page, tok *Token) bool {
 
 func check_if_statement(the_page *Page, tok *Token) bool {
 	switch tok.Type {
-		case IF_SCOPE_PROJECT:     return project(tok)
-		case IF_SCOPE_PROJECT_NOT: return !project(tok)
-		case IF_SCOPE_PAGE:        return page(the_page, tok)
-		case IF_SCOPE_PAGE_NOT:    return !page(the_page, tok)
-		case IF_SCOPE_PARENT:      return page(the_page.CurrentParent, tok)
-		case IF_SCOPE_PARENT_NOT:  return !page(the_page.CurrentParent, tok)
+		case IF_SCOPE_PROJECT:     return if_project_value(tok)
+		case IF_SCOPE_PROJECT_NOT: return !if_project_value(tok)
+		case IF_SCOPE_PAGE:        return if_page_value(the_page, tok)
+		case IF_SCOPE_PAGE_NOT:    return !if_page_value(the_page, tok)
+		case IF_SCOPE_PARENT:      return if_page_value(the_page.CurrentParent, tok)
+		case IF_SCOPE_PARENT_NOT:  return !if_page_value(the_page.CurrentParent, tok)
 	}
 	return false
 }

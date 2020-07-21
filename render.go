@@ -5,37 +5,8 @@ import (
 	"sort"
 	"bufio"
 	"strings"
-	"unicode"
 	"path/filepath"
 )
-
-var default_plate = &Plate {
-	Tokens: map[string]string {
-		"h1":        `<h1 id='${v}'>${v}</h1>`,
-		"h2":        `<h2 id='${v}'>${v}</h2>`,
-		"h3":        `<h3 id='${v}'>${v}</h3>`,
-		"h4":        `<h4 id='${v}'>${v}</h4>`,
-		"h5":        `<h5 id='${v}'>${v}</h5>`,
-		"h6":        `<h6 id='${v}'>${v}</h6>`,
-		"image":     `<img src='${v}'>`,
-		"quote":     `<blockquote>${v}</blockquote>`,
-		"divider":   `<hr>`,
-		"paragraph": `<p>${v}</p>`,
-		"ul":        `<ul>${v}</ul>`,
-		"list":      `<li>${v}</li>`,
-		"code":      `<pre><code>${v}</code></pre>`,
-	},
-}
-
-func plate_entry(p *Plate, v string) string {
-	if value, ok := p.Tokens[v]; ok {
-		return value
-	}
-	if value, ok := default_plate.Tokens[v]; ok {
-		return value
-	}
-	return ""
-}
 
 func render(p *Page) {
 	if plate_name, ok := p.Vars["plate"]; ok {
@@ -117,32 +88,6 @@ func render(p *Page) {
 	writer.WriteString(`</body></html>`)
 
 	writer.Flush()
-}
-
-func skip_block(the_page *Page, active_block *Token) {
-	the_list := the_page.List
-
-	for {
-		tok := the_list.Next()
-
-		if tok == nil {
-			break
-		}
-
-		if tok.Type > tok_if_statements {
-			skip_block(the_page, active_block)
-			continue
-		}
-
-		if tok.Type == BLOCK_START {
-			skip_block(the_page, active_block)
-			continue
-		}
-
-		if tok.Type == BLOCK_CLOSE {
-			break
-		}
-	}
 }
 
 func recurse_render(the_page *Page, active_block *Token) string {
@@ -268,7 +213,7 @@ func recurse_render(the_page *Page, active_block *Token) string {
 			clean_text := strip_inlines(tok.Text)
 			dirty_text := inlines(tok.Text)
 
-			content.WriteString(sub_sprint(p, id_maker(clean_text), dirty_text))
+			content.WriteString(sub_sprint(p, make_element_id(clean_text), dirty_text))
 			continue
 		}
 
@@ -283,139 +228,38 @@ func recurse_render(the_page *Page, active_block *Token) string {
 	return content.String()
 }
 
-// adds media_prefix_path (oko.json) to
-// images unless image is external or already
-// has prefix
-func image_checker(v string) string {
-	if !strings.HasPrefix(v, `http`) && !strings.HasPrefix(v, config.ImagePrefix) {
-		v = config.ImagePrefix + v
-	}
-	return v
-}
-
-func id_maker(source string) string {
-	var new strings.Builder
-
-	for _, c := range source {
-		if unicode.IsLetter(c) || unicode.IsNumber(c) {
-			new.WriteRune(c)
-			continue
-		}
-		if unicode.IsSpace(c) || c == '-' {
-			new.WriteRune('-')
-			continue
-		}
-	}
-
-	return strings.ToLower(new.String())
-}
-
-func mapmap(source string, ref_map map[string]string, hard bool) string {
-	if strings.IndexRune(source, '$') < 0 {
-		return source
-	}
-
-	input := source
-	list  := make(map[string]string)
+func skip_block(the_page *Page, active_block *Token) {
+	the_list := the_page.List
 
 	for {
-		pos := strings.IndexRune(input, '$')
+		tok := the_list.Next()
 
-		if pos < 0 {
+		if tok == nil {
 			break
 		}
 
-		if input[pos+1] == '{' {
-			end     := strings.IndexRune(input[pos+1:], '}')
-			end_pos := pos + end + 2
+		if tok.Type > tok_if_statements {
+			skip_block(the_page, active_block)
+			continue
+		}
 
-			if end > 0 {
-				v := input[pos:end_pos]
-				list[v] = v
-			} else {
-				panic("bad variable") // @error
-			}
+		if tok.Type == BLOCK_START {
+			skip_block(the_page, active_block)
+			continue
+		}
 
-			input = input[end_pos:]
-		} else {
-			input = input[pos+1:]
+		if tok.Type == BLOCK_CLOSE {
+			break
 		}
 	}
-
-	for _, variable := range list {
-		id := variable[2:len(variable)-1]
-
-		if value, ok := ref_map[id]; ok {
-			if strings.Contains(id, `image`) { // do image things in variables
-				value = image_checker(value)
-			}
-			source = strings.ReplaceAll(source, variable, value)
-		} else if hard {
-			source = strings.ReplaceAll(source, variable, "")
-		}
-	}
-
-	return source
-}
-
-func sub(source, r, v string) string {
-	return strings.ReplaceAll(source, `${` + r + `}`, v)
-}
-
-func sub_content(source, v string) string {
-	return strings.ReplaceAll(source, `${v}`, v)
-}
-
-func sub_sprint(source string, v ...string) string {
-	for _, x := range v {
-		source = strings.Replace(source, `${v}`, x, 1)
-	}
-	return source
 }
 
 
-
+//
+// Snippets
+//
 var SnippetText = make(map[string]string)
 var SnippetList = make(map[string]*Page)
-
-func render_snippet(p *Page) string {
-	var body strings.Builder
-	var body_inside strings.Builder
-
-	if len(p.Plate.SnippetBefore) > 0 {
-		for _, s := range p.Plate.SnippetBefore {
-			body.WriteString(snippet(p, s))
-		}
-	}
-
-	if len(p.Plate.BodyBefore) > 0 {
-		for _, s := range p.Plate.BodyBefore {
-			body_inside.WriteString(snippet(p, s))
-		}
-	}
-
-	body_inside.WriteString(recurse_render(p, nil))
-
-	if len(p.Plate.BodyAfter) > 0 {
-		for _, s := range p.Plate.BodyAfter {
-			body_inside.WriteString(snippet(p, s))
-		}
-	}
-
-	if b, ok := p.Plate.Tokens["body"]; ok {
-		body.WriteString(sub_content(b, body_inside.String()))
-	} else {
-		body.WriteString(body_inside.String())
-	}
-
-	if len(p.Plate.SnippetAfter) > 0 {
-		for _, s := range p.Plate.SnippetAfter {
-			body.WriteString(snippet(p, s))
-		}
-	}
-
-	return mapmap(body.String(), p.Vars, false)
-}
 
 func snippet(parent *Page, name string) string {
 	if body, ok := SnippetText[name]; ok {
@@ -461,6 +305,48 @@ func snippet(parent *Page, name string) string {
 	return b
 }
 
+func render_snippet(p *Page) string {
+	var body strings.Builder
+	var body_inside strings.Builder
+
+	if len(p.Plate.SnippetBefore) > 0 {
+		for _, s := range p.Plate.SnippetBefore {
+			body.WriteString(snippet(p, s))
+		}
+	}
+
+	if len(p.Plate.BodyBefore) > 0 {
+		for _, s := range p.Plate.BodyBefore {
+			body_inside.WriteString(snippet(p, s))
+		}
+	}
+
+	body_inside.WriteString(recurse_render(p, nil))
+
+	if len(p.Plate.BodyAfter) > 0 {
+		for _, s := range p.Plate.BodyAfter {
+			body_inside.WriteString(snippet(p, s))
+		}
+	}
+
+	if b, ok := p.Plate.Tokens["body"]; ok {
+		body.WriteString(sub_content(b, body_inside.String()))
+	} else {
+		body.WriteString(body_inside.String())
+	}
+
+	if len(p.Plate.SnippetAfter) > 0 {
+		for _, s := range p.Plate.SnippetAfter {
+			body.WriteString(snippet(p, s))
+		}
+	}
+
+	return mapmap(body.String(), p.Vars, false)
+}
+
+//
+// Meta
+//
 func check_slash(s string) string {
 	if s[len(s)-1:] != "/" {
 		s += "/"
@@ -578,17 +464,4 @@ func sitemap(path string) {
 	writer.WriteString(`</urlset>`)
 
 	writer.Flush()
-}
-
-func make_favicon(f string) string {
-	var tag string
-
-	switch filepath.Ext(f) {
-		case ".ico": tag = `<link rel='icon' type='image/x-icon' href='${v}'>`
-		case ".png": tag = `<link rel='icon' type='image/png' href='${v}'>`
-		case ".gif": tag = `<link rel='icon' type='image/gif' href='${v}'>`
-		default: panic("bad favicon format")
-	}
-
-	return sub_content(tag, f)
 }

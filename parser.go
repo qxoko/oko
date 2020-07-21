@@ -1,13 +1,19 @@
 package main
 
 import (
-	"fmt"
 	"bytes"
 	"strings"
 	"unicode"
 )
 
 var DepTree = make(map[string][]string)
+
+type Token struct {
+	Type Token_Type
+	Text string
+	Line int
+	Vars map[string]string
+}
 
 type Token_Type int
 
@@ -52,13 +58,6 @@ const (
 	IF_SCOPE_PAGE
 	IF_SCOPE_PAGE_NOT
 )
-
-type Token struct {
-	Type Token_Type
-	Text string
-	Line int
-	Vars map[string]string
-}
 
 var token_names = [...]string {
 	"tok_begin",
@@ -178,14 +177,14 @@ func extract_to_newline(input []rune) []rune {
 }
 
 func jump_to_next_newline(input []rune) int {
-		c := 0
-		for _, r := range input {
-			if r == '\n' || r == '\r' {
-				return c
-			}
-			c++
+	c := 0
+	for _, r := range input {
+		if r == '\n' || r == '\r' {
+			return c
 		}
-		return c
+		c++
+	}
+	return c
 }
 
 func jump_to_next_char(input []rune, test rune) int {
@@ -634,11 +633,4 @@ func parser(page *Page, source []byte) *Token_List {
 	}
 
 	return &Token_List{Tokens: list, IsCommittable:committable}
-}
-
-// dev
-func print_syntax_tree(list *Token_List) {
-	for _, entry := range list.Tokens {
-		fmt.Println(entry)
-	}
 }

@@ -6,84 +6,7 @@ import (
 	"encoding/json"
 )
 
-type Config struct {
-	Domain  string
-	Output  string
-	Favicon string
-	Title   string
-
-	StyleRender string
-
-	DoAllPages bool `json:"do_all_pages"`
-	ShowDrafts bool `json:"show_drafts"`
-	Sitemap bool
-
-	Style      []string
-	Include    []string
-	Extensions []string
-
-	ImagePrefix string `json:"image_path_prefix"`
-
-	Meta map[string]string
-	Vars map[string]string
-}
-
-func load_config() *Config {
-	var config Config
-
-	p := "_data/oko.json"
-
-	if !file_exists(p) {
-		return nil
-	}
-
-	err := json.Unmarshal(load_file_bytes(p), &config)
-
-	if err != nil {
-		panic(err)
-	}
-
-	if config.Domain == "" {
-		panic("no domain name in _data/oko.json!")
-	}
-
-	if !strings.HasPrefix(config.Domain, "https://") {
-		config.Domain = "https://" + config.Domain
-	}
-
-	if config.Output == "" {
-		config.Output = "public" // set a reasonable default
-	}
-
-	if config.Favicon != "" {
-		config.Favicon = make_favicon(config.Favicon)
-	}
-
-	if config.Vars == nil {
-		config.Vars = make(map[string]string, 8)
-	}
-
-	if len(config.Extensions) == 0 {
-		config.Extensions = []string{`.ø`, `.html`}
-	} else {
-		has_html := false
-
-		for _, e := range config.Extensions {
-			if e == `.html` {
-				has_html = true
-				break
-			}
-		}
-
-		if !has_html {
-			config.Extensions = append(config.Extensions, `.html`)
-		}
-	}
-
-	config.StyleRender = render_style(config.Style, ``)
-
-	return &config
-}
+var PlateList = make(map[string]*Plate)
 
 type Plate struct {
 	Extends       string
@@ -103,7 +26,33 @@ type Plate struct {
 	Tokens map[string]string
 }
 
-var PlateList = make(map[string]*Plate)
+var default_plate = &Plate {
+	Tokens: map[string]string {
+		"h1":        `<h1 id='${v}'>${v}</h1>`,
+		"h2":        `<h2 id='${v}'>${v}</h2>`,
+		"h3":        `<h3 id='${v}'>${v}</h3>`,
+		"h4":        `<h4 id='${v}'>${v}</h4>`,
+		"h5":        `<h5 id='${v}'>${v}</h5>`,
+		"h6":        `<h6 id='${v}'>${v}</h6>`,
+		"image":     `<img src='${v}'>`,
+		"quote":     `<blockquote>${v}</blockquote>`,
+		"divider":   `<hr>`,
+		"paragraph": `<p>${v}</p>`,
+		"ul":        `<ul>${v}</ul>`,
+		"list":      `<li>${v}</li>`,
+		"code":      `<pre><code>${v}</code></pre>`,
+	},
+}
+
+func plate_entry(p *Plate, v string) string {
+	if value, ok := p.Tokens[v]; ok {
+		return value
+	}
+	if value, ok := default_plate.Tokens[v]; ok {
+		return value
+	}
+	return ""
+}
 
 func plate_path(name string) string {
 	return "_data/plates/" + name + ".json"
