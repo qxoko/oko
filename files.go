@@ -191,7 +191,32 @@ func compare_dirs(source, output, file_mod, file_del map[string]*File_Info) (map
 	return mod, del
 }
 
-func support_files(root string, age time.Time) []string {
+type Support_File int
+
+const (
+	S_PLATES Support_File = iota
+	S_SNIPPETS
+	S_FUNCTIONS
+)
+
+func support_files(file_type Support_File, age time.Time) []string {
+	root := ""
+	pref := ""
+
+	switch file_type {
+		case S_PLATES:
+			root = "_data/plates"
+			pref = "plate_"
+
+		case S_SNIPPETS:
+			root = "_data/snippets"
+			pref = "snip_"
+
+		case S_FUNCTIONS:
+			root = "_data/functions"
+			pref = "func_"
+	}
+
 	var list []string
 
 	if !path_exists(root) {
@@ -207,7 +232,7 @@ func support_files(root string, age time.Time) []string {
 		}
 
 		if info.ModTime().After(age) {
-			name = name[0:len(name) - len(filepath.Ext(name))]
+			name = pref + name[0:len(name) - len(filepath.Ext(name))]
 			list = append(list, name)
 		}
 

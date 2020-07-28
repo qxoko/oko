@@ -120,9 +120,6 @@ func recurse_render(the_page *Page, active_block *Token) string {
 			case ERROR:
 				render_error(the_page, tok, "parser error")
 
-			case FUNCTION:
-				content.WriteString(do_script(the_page, tok.Text))
-
 			case LIST_ENTRY:
 				var list_buffer strings.Builder
 
@@ -183,6 +180,9 @@ func recurse_render(the_page *Page, active_block *Token) string {
 			case HTML_SNIPPET:
 				content.WriteString(tok.Text)
 				continue
+
+			case FUNCTION:
+				content.WriteString(tok.Text)
 
 			case BLOCK_CODE:
 				tok = the_list.Next()

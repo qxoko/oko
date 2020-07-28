@@ -321,10 +321,7 @@ func parser(page *Page, source []byte) *Token_List {
 			t     := string(text)
 			name  := strings.SplitN(t, " ", 2)[0]
 
-			DepTree[name] = append(DepTree[name], page.ID)
-
-			// circular hack
-			DepTree[page.ID] = append(DepTree[page.ID], name)
+			DepTree[name]    = append(DepTree[name], page.ID)
 
 			list = append(list, &Token{IMPORT, t, line_no(input), nil})
 			continue
@@ -345,8 +342,13 @@ func parser(page *Page, source []byte) *Token_List {
 			continue
 		}
 		if text, update_input, ok := simple_oko_token(input, 'ø'); ok {
-			input = update_input
-			list = append(list, &Token{FUNCTION, string(text), line_no(input), nil})
+			input  = update_input
+			t     := string(text)
+			name  := "func_" + t
+
+			DepTree[name] = append(DepTree[name], page.ID)
+
+			list = append(list, &Token{FUNCTION, t, line_no(input), nil})
 			continue
 		}
 		if text, update_input, ok := simple_oko_token(input, '$'); ok {

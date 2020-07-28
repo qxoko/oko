@@ -18,9 +18,9 @@ type Page struct {
 
 	CurrentParent *Page // @hack
 
-	IsDraft    bool
-	IsIndex    bool
-	Format     File_Format
+	IsDraft bool
+	IsIndex bool
+	Format  File_Format
 
 	Plate      *Plate
 	List       *Token_List

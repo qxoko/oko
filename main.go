@@ -4,7 +4,6 @@ import (
 	"os"
 	"fmt"
 	"sort"
-	"strings"
 	"path/filepath"
 )
 
@@ -33,11 +32,20 @@ func do_pages() {
 		}
 	}
 
+	// because it is impossible to determine
+	// what user code is going to do before it
+	// runs, we must run every function every
+	// single time to determine the dependencies
+	for _, page := range PageList {
+		do_functions(page)
+	}
+
 	file_mod, file_del := compare_files(source, output)
 	path_mod, path_del := compare_dirs(source, output, file_mod, file_del)
 
-	snippets := support_files("_data/snippets", age)
-	plates   := support_files("_data/plates",   age)
+	plates    := support_files(S_PLATES,    age)
+	snippets  := support_files(S_SNIPPETS,  age)
+	functions := support_files(S_FUNCTIONS, age)
 
 	if config.DoAllPages {
 		file_mod  = make(map[string]*File_Info, len(source))
@@ -55,12 +63,17 @@ func do_pages() {
 			}
 		}
 		for _, s := range snippets {
-			for _, id := range DepTree["snip_" + s] {
+			for _, id := range DepTree[s] {
 				file_mod[id] = source[id]
 			}
 		}
 		for _, p := range plates {
-			for _, id := range DepTree["plate_" + p] {
+			for _, id := range DepTree[p] {
+				file_mod[id] = source[id]
+			}
+		}
+		for _, p := range functions {
+			for _, id := range DepTree[p] {
 				file_mod[id] = source[id]
 			}
 		}
@@ -92,13 +105,11 @@ func do_pages() {
 		if file.Exclude {
 			continue
 		}
-
 		file_mod_ordered = append(file_mod_ordered, file)
 	}
 
 	sort.SliceStable(file_mod_ordered, func(i, j int) bool {
-		one, two := file_mod_ordered[i].ID, file_mod_ordered[j].ID
-		return one < two || strings.Contains(one, `index`)
+		return file_mod_ordered[i].ID < file_mod_ordered[j].ID
 	})
 
 	for _, file := range file_mod_ordered {
@@ -127,14 +138,13 @@ func do_pages() {
 	}
 
 	if len(file_mod_ordered) > 0 {
-		sort.SliceStable(file_mod_ordered, func(i, j int) bool {
-			one, two := file_mod_ordered[i].ID, file_mod_ordered[j].ID
-			return one < two
-		})
-
 		fmt.Println("[ø] updated pages\n")
 
 		for _, file := range file_mod_ordered {
+			fmt.Println("   ", file.ID)
+		}
+
+		for _, file := range secondary_renders {
 			fmt.Println("   ", file.ID)
 		}
 
