@@ -22,9 +22,9 @@ func make_favicon(f string) string {
 	var tag string
 
 	switch filepath.Ext(f) {
-		case ".ico": tag = `<link rel='icon' type='image/x-icon' href='${v}'>`
-		case ".png": tag = `<link rel='icon' type='image/png' href='${v}'>`
-		case ".gif": tag = `<link rel='icon' type='image/gif' href='${v}'>`
+		case ".ico": tag = `<link rel='icon' type='image/x-icon' href='%s'>`
+		case ".png": tag = `<link rel='icon' type='image/png' href='%s'>`
+		case ".gif": tag = `<link rel='icon' type='image/gif' href='%s'>`
 		default: panic("bad favicon format")
 	}
 
@@ -42,7 +42,7 @@ const (
 )
 
 func media_vimeo(viewcode, ratio string, args []string) string {
-	iframe := sub_sprint(`<div class='video'><div class='video-container'${v}><iframe src='https://player.vimeo.com/video/${v}?color=0&title=0&byline=0&portrait=0' frameborder='0' allow='fullscreen' allowfullscreen></iframe></div></div>`, ratio, viewcode)
+	iframe := sub_sprint(`<div class='video'><div class='video-container'%s><iframe src='https://player.vimeo.com/video/%s?color=0&title=0&byline=0&portrait=0' frameborder='0' allow='fullscreen' allowfullscreen></iframe></div></div>`, ratio, viewcode)
 
 	if len(args) == 0 {
 		return iframe
@@ -73,7 +73,7 @@ func media_vimeo(viewcode, ratio string, args []string) string {
 }
 
 func media_youtube(viewcode, ratio string, args []string) string {
-	iframe := sub_sprint(`<div class='video'><div class='video-container'${v}><iframe src='https://www.youtube-nocookie.com/embed/${v}?rel=0&controls=1' frameborder='0' allow='accelerometer; encrypted-media; gyroscope; picture-in-picture' allowfullscreen></iframe></div></div>`, ratio, viewcode)
+	iframe := sub_sprint(`<div class='video'><div class='video-container'%s><iframe src='https://www.youtube-nocookie.com/embed/%s?rel=0&controls=1' frameborder='0' allow='accelerometer; encrypted-media; gyroscope; picture-in-picture' allowfullscreen></iframe></div></div>`, ratio, viewcode)
 
 	if len(args) == 0 {
 		return iframe

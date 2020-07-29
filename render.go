@@ -354,8 +354,8 @@ func check_slash(s string) string {
 	return s
 }
 
-var meta_source  = `<meta property='${v}' content='${v}'>`
-var meta_descrip = `<meta name='description' content='${v}'>`
+var meta_source  = `<meta property='%s' content='%s'>`
+var meta_descrip = `<meta name='description' content='%s'>`
 
 func meta(the_page *Page) string {
 	var meta_block strings.Builder
@@ -376,7 +376,7 @@ func meta(the_page *Page) string {
 
 	// domain
 	canon_path := config.Domain + the_page.URLPath
-	meta_block.WriteString(sub_content(`<link rel='canonical' href='${v}'>`, canon_path))
+	meta_block.WriteString(sub_content(`<link rel='canonical' href='%s'>`, canon_path))
 	meta_block.WriteString(sub_sprint(meta_source, "og:url", canon_path))
 
 	domain := check_slash(config.Domain)
@@ -435,7 +435,7 @@ func meta(the_page *Page) string {
 
 func sitemap(path string) {
 	ordered    := make([]string, len(PageList))
-	url_source := `<url><loc>${v}${v}</loc></url>`
+	url_source := `<url><loc>%s%s</loc></url>`
 
 	for _, page := range PageList {
 		ordered = append(ordered, sub_sprint(url_source, config.Domain, page.URLPath))
