@@ -1,25 +1,28 @@
 package main
 
-import "regexp"
+import (
+	"regexp"
+	"strings"
+)
 
 // this file is isolated as a constant
 // reminder to replace it with something
 // faster
 
-var italics = regexp.MustCompile(`_(.+?)_`)
-var bolds   = regexp.MustCompile(`\*(.+?)\*`)
-var links   = regexp.MustCompile(`\[(.+?)\]\((.+?)\)`)
+var italics = regexp.MustCompile(`_([^><]+)_`)
+var bolds   = regexp.MustCompile(`\*([^><]+)\*`)
+var links   = regexp.MustCompile(`\[([^><]+)\]\(([^><]+)\)`)
 var code    = regexp.MustCompile("`(.+?)`")
 
-var inline  = regexp.MustCompile(`c\.(.+?){(.+?)}`)
+var inline = regexp.MustCompile(`c\.([^><]+){([^><]+)}`)
 
 func inlines(v string) string {
 	input := []byte(v)
 
+	input = code.ReplaceAll(input,    []byte(`<code>$1</code>`))
 	input = links.ReplaceAll(input,   []byte(`<a href='$2'>$1</a>`))
 	input = bolds.ReplaceAll(input,   []byte(`<b>$1</b>`))
 	input = italics.ReplaceAll(input, []byte(`<i>$1</i>`))
-	input = code.ReplaceAll(input,    []byte(`<code>$1</code>`))
 
 	return string(input)
 }
@@ -27,10 +30,10 @@ func inlines(v string) string {
 func strip_inlines(v string) string {
 	input := []byte(v)
 
+	input = code.ReplaceAll(input,    []byte(`$1`))
 	input = links.ReplaceAll(input,   []byte(`$1`))
 	input = bolds.ReplaceAll(input,   []byte(`$1`))
 	input = italics.ReplaceAll(input, []byte(`$1`))
-	input = code.ReplaceAll(input,    []byte(`$1`))
 
 	return string(input)
 }
@@ -40,5 +43,11 @@ func inline_code_sub(v string) string {
 
 	input = inline.ReplaceAll(input, []byte(`<span class='c $1'>$2</span>`))
 
-	return string(input)
+	s := string(input)
+
+	s = strings.ReplaceAll(s, `&`, `&amp;`)
+	s = strings.ReplaceAll(s, `<`, `&lt;`)
+	s = strings.ReplaceAll(s, `>`, `&gt;`)
+
+	return s
 }
