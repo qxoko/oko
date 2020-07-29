@@ -11,7 +11,7 @@ import (
 
 var italics = regexp.MustCompile(`_([^><]+)_`)
 var bolds   = regexp.MustCompile(`\*([^><]+)\*`)
-var links   = regexp.MustCompile(`\[([^><]+)\]\(([^><]+)\)`)
+var links   = regexp.MustCompile(`\[(.+?)\]\((.+?)\)`)
 var code    = regexp.MustCompile("`(.+?)`")
 
 var inline = regexp.MustCompile(`c\.([^><]+){([^><]+)}`)
