@@ -82,15 +82,15 @@ func sub(source, r, v string) string {
 }
 
 // slightly faster sub that only matches the
-// ${v} convention
+// %s convention
 func sub_content(source, v string) string {
-	return strings.ReplaceAll(source, `${v}`, v)
+	return strings.ReplaceAll(source, `%s`, v)
 }
 
-// extremely fast sprintf for ${v} convention
+// extremely fast sprintf for %s convention
 func sub_sprint(source string, v ...string) string {
 	for _, x := range v {
-		source = strings.Replace(source, `${v}`, x, 1)
+		source = strings.Replace(source, `%s`, x, 1)
 	}
 	return source
 }

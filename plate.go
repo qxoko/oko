@@ -28,19 +28,19 @@ type Plate struct {
 
 var default_plate = &Plate {
 	Tokens: map[string]string {
-		"h1":        `<h1 id='${v}'>${v}</h1>`,
-		"h2":        `<h2 id='${v}'>${v}</h2>`,
-		"h3":        `<h3 id='${v}'>${v}</h3>`,
-		"h4":        `<h4 id='${v}'>${v}</h4>`,
-		"h5":        `<h5 id='${v}'>${v}</h5>`,
-		"h6":        `<h6 id='${v}'>${v}</h6>`,
-		"image":     `<img src='${v}'>`,
-		"quote":     `<blockquote>${v}</blockquote>`,
+		"h1":        `<h1 id='%s'>%s</h1>`,
+		"h2":        `<h2 id='%s'>%s</h2>`,
+		"h3":        `<h3 id='%s'>%s</h3>`,
+		"h4":        `<h4 id='%s'>%s</h4>`,
+		"h5":        `<h5 id='%s'>%s</h5>`,
+		"h6":        `<h6 id='%s'>%s</h6>`,
+		"image":     `<img src='%s'>`,
+		"quote":     `<blockquote>%s</blockquote>`,
 		"divider":   `<hr>`,
-		"paragraph": `<p>${v}</p>`,
-		"ul":        `<ul>${v}</ul>`,
-		"list":      `<li>${v}</li>`,
-		"code":      `<pre><code>${v}</code></pre>`,
+		"paragraph": `<p>%s</p>`,
+		"ul":        `<ul>%s</ul>`,
+		"list":      `<li>%s</li>`,
+		"code":      `<pre><code>%s</code></pre>`,
 	},
 }
 
@@ -124,14 +124,14 @@ func render_style(list []string, def string) string {
 	if len(list) == 0 {
 		return def
 	}
-	return render_stackable(list, def, `<link rel='stylesheet' type='text/css' href='${v}'/>`)
+	return render_stackable(list, def, `<link rel='stylesheet' type='text/css' href='%s'/>`)
 }
 
 func render_script(list []string, def string) string {
 	if len(list) == 0 {
 		return def
 	}
-	return render_stackable(list, def, `<script type='text/javascript' src='${v}' defer></script>`)
+	return render_stackable(list, def, `<script type='text/javascript' src='%s' defer></script>`)
 }
 
 func render_stackable(list []string, def, source string) string {
