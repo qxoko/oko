@@ -460,7 +460,6 @@ func parser(page *Page, source []byte) *Token_List {
 
 					var indent   int
 					var count    int
-					var last     rune
 					var ws_count int
 
 					for _, r := range test_input {
@@ -471,11 +470,24 @@ func parser(page *Page, source []byte) *Token_List {
 						}
 					}
 
+					brace_balance := 1
+					last := test_input[0]
+
 					for _, r := range test_input {
-						if r == '}' && unicode.IsSpace(last) {
-							break
+						if r == '{' && last != '\\' {
+							brace_balance++
 						}
+
+						if r == '}' && last != '\\' {
+							brace_balance--
+
+							if brace_balance == 0 {
+								break
+							}
+						}
+
 						last = r
+
 						count++
 					}
 
