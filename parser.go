@@ -449,7 +449,7 @@ func parser(page *Page, source []byte) *Token_List {
 					lang := string(extract_identifier(test_input))
 
 					if len(lang) == 0 {
-						lang = "code"
+						lang = ""
 					}
 
 					test_input = test_input[c+1:]

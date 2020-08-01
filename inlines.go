@@ -45,7 +45,7 @@ func inline_code_sub(v string) string {
 
 	input := []byte(v)
 
-	input = inline.ReplaceAll(input, []byte(`<span class='c $1'>$2</span>`))
+	input = inline.ReplaceAll(input, []byte(`<span class='token $1'>$2</span>`))
 
 	return string(input)
 }

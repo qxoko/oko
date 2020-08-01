@@ -14,8 +14,10 @@ type Config struct {
 
 	StyleRender string
 
-	DoAllPages bool `json:"do_all_pages"`
-	ShowDrafts bool `json:"show_drafts"`
+	DoAllPages      bool `json:"do_all_pages"`
+	ShowDrafts      bool `json:"show_drafts"`
+
+	DoCodeHighlight bool `json:"code_highlight"`
 	Sitemap bool
 
 	Style      []string

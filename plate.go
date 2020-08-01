@@ -40,7 +40,7 @@ var default_plate = &Plate {
 		"paragraph": `<p>%s</p>`,
 		"ul":        `<ul>%s</ul>`,
 		"list":      `<li>%s</li>`,
-		"code":      `<pre><code>%s</code></pre>`,
+		"code":      `<pre><code %s>%s</code></pre>`,
 	},
 }
 

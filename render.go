@@ -185,11 +185,20 @@ func recurse_render(the_page *Page, active_block *Token) string {
 				content.WriteString(tok.Text)
 
 			case BLOCK_CODE:
-				tok = the_list.Next()
-
+				lang := tok.Text
+				tok   = the_list.Next()
 				text := inline_code_sub(tok.Text)
 
-				content.WriteString(sub_content(plate_entry(plate, "code"), text))
+				code_class := ""
+
+				if lang != "" {
+					if config.DoCodeHighlight {
+						text = highlight_code(text, lang)
+					}
+					code_class = sub_content(`class='lang-%s'`, lang)
+				}
+
+				content.WriteString(sub_sprint(plate_entry(plate, "code"), code_class, text))
 				continue
 
 			case BLOCK_START:
