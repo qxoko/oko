@@ -93,6 +93,10 @@ func (t Token_Type) String() string {
 }
 
 func convert_token_offset(tok *Token) (string, string) {
+	if tok.Offset > 6 {
+		tok.Offset = uint8(1)
+	}
+
 	if tok.Type == HEADING {
 		switch tok.Offset {
 			case 1: return "h1", "h1"
