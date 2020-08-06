@@ -54,6 +54,24 @@ func plate_entry(p *Plate, v string) string {
 	return ""
 }
 
+func plate_entry_offset(p *Plate, tok *Token) string {
+	id, def := convert_token_offset(tok)
+
+	if value, ok := p.Tokens[id]; ok {
+		return value
+	}
+	if value, ok := p.Tokens[def]; ok {
+		return value
+	}
+	if value, ok := default_plate.Tokens[id]; ok {
+		return value
+	}
+	if value, ok := default_plate.Tokens[def]; ok {
+		return value
+	}
+	return ""
+}
+
 func plate_path(name string) string {
 	return "_data/plates/" + name + ".json"
 }

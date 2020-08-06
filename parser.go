@@ -10,6 +10,7 @@ var DepTree = make(map[string][]string)
 
 type Token struct {
 	Type Token_Type
+	Offset uint8
 	Text string
 	Line int
 	Vars map[string]string
@@ -18,27 +19,20 @@ type Token struct {
 type Token_Type int
 
 const (
-	tok_begin Token_Type = iota
-
-	H1
-	H2
-	H3
-	H4
-	H5
-	H6
-
-	tok_headings
-
-	QUOTE
+	HEADING Token_Type = iota
 	PARAGRAPH
 	LIST_ENTRY
+	QUOTE
 
 	tok_inline_format
 
-	ERROR
 	IMAGE
 	TOKEN
+
+	tok_offset_check
+
 	MEDIA
+	ERROR
 	IMPORT
 	SNIPPET
 	DIVIDER
@@ -60,27 +54,20 @@ const (
 )
 
 var token_names = [...]string {
-	"tok_begin",
-
-	"h1",
-	"h2",
-	"h3",
-	"h4",
-	"h5",
-	"h6",
-
-	"headings",
-
-	"quote",
+	"heading",
 	"paragraph",
 	"list_entry",
+	"quote",
 
 	"inline_format",
 
-	"error",
 	"image",
 	"token",
-	"video",
+
+	"offset_check",
+
+	"media",
+	"error",
 	"import",
 	"snippet",
 	"divider",
@@ -105,7 +92,31 @@ func (t Token_Type) String() string {
 	return token_names[t]
 }
 
+func convert_token_offset(tok *Token) (string, string) {
+	if tok.Type == HEADING {
+		switch tok.Offset {
+			case 1: return "h1", "h1"
+			case 2: return "h2", "h2"
+			case 3: return "h3", "h3"
+			case 4: return "h4", "h4"
+			case 5: return "h5", "h5"
+			case 6: return "h6", "h6"
+		}
+	}
 
+	id := tok.Type.String()
+
+	switch tok.Offset {
+		case 1: return id, id
+		case 2: return id + "2", id
+		case 3: return id + "3", id
+		case 4: return id + "4", id
+		case 5: return id + "5", id
+		case 6: return id + "6", id
+	}
+
+	return "", ""
+}
 
 type Token_List struct {
 	Tokens []*Token
@@ -272,7 +283,7 @@ func parser(page *Page, source []byte) *Token_List {
 		if input[0] == '}' {
 			input = input[1:]
 
-			list = append(list, &Token{BLOCK_CLOSE, "", line_no(input), nil})
+			list = append(list, &Token{BLOCK_CLOSE, 0, "", line_no(input), nil})
 
 			active_block = pop(active_block)
 
@@ -291,31 +302,44 @@ func parser(page *Page, source []byte) *Token_List {
 			text  := extract_to_newline(input)
 			input  = input[len(text):]
 
-			var heading Token_Type
+			list = append(list, &Token{HEADING, uint8(c), string(text), line_no(input), nil})
+			continue
+		}
+		if input[0] == '%' {
+			c     := count_sequential_runes(input, '%')
+			input  = consume_whitespace(input[c:])
+			text  := extract_to_newline(input)
+			input  = input[len(text):]
 
-			switch c {
-				case 1: heading = H1
-				case 2: heading = H2
-				case 3: heading = H3
-				case 4: heading = H4
-				case 5: heading = H5
-				case 6: heading = H6
-			}
+			list = append(list, &Token{IMAGE, uint8(c), string(text), line_no(input), nil})
+			continue
+		}
+		if input[0] == '&' {
+			c     := count_sequential_runes(input, '&')
+			input  = consume_whitespace(input[c:])
+			text  := extract_to_newline(input)
+			input  = input[len(text):]
 
-			list = append(list, &Token{heading, string(text), line_no(input), nil})
+			list = append(list, &Token{TOKEN, uint8(c), string(text), line_no(input), nil})
+			continue
+		}
+		if input[0] == '$' {
+			c     := count_sequential_runes(input, '$')
+			input  = consume_whitespace(input[c:])
+			text  := extract_to_newline(input)
+			input  = input[len(text):]
+
+			list = append(list, &Token{QUOTE, uint8(c), string(text), line_no(input), nil})
 			continue
 		}
 
-		if text, update_input, ok := simple_oko_token(input, '%'); ok {
-			input = update_input
-			list = append(list, &Token{IMAGE, string(text), line_no(input), nil})
-			continue
-		}
 		if text, update_input, ok := simple_oko_token(input, '@'); ok {
 			input = update_input
-			list = append(list, &Token{MEDIA, string(text), line_no(input), nil})
+			list = append(list, &Token{MEDIA, 0, string(text), line_no(input), nil})
 			continue
 		}
+
+		// external calls
 		if text, update_input, ok := simple_oko_token(input, '+'); ok {
 			input  = update_input
 			t     := string(text)
@@ -323,7 +347,7 @@ func parser(page *Page, source []byte) *Token_List {
 
 			DepTree[name]    = append(DepTree[name], page.ID)
 
-			list = append(list, &Token{IMPORT, t, line_no(input), nil})
+			list = append(list, &Token{IMPORT, 0, t, line_no(input), nil})
 			continue
 		}
 		if text, update_input, ok := simple_oko_token(input, '>'); ok {
@@ -333,12 +357,7 @@ func parser(page *Page, source []byte) *Token_List {
 
 			DepTree[name] = append(DepTree[name], page.ID)
 
-			list = append(list, &Token{SNIPPET, t, line_no(input), nil})
-			continue
-		}
-		if text, update_input, ok := simple_oko_token(input, '&'); ok {
-			input = update_input
-			list = append(list, &Token{TOKEN, string(text), line_no(input), nil})
+			list = append(list, &Token{SNIPPET, 0, t, line_no(input), nil})
 			continue
 		}
 		if text, update_input, ok := simple_oko_token(input, 'ø'); ok {
@@ -348,17 +367,14 @@ func parser(page *Page, source []byte) *Token_List {
 
 			DepTree[name] = append(DepTree[name], page.ID)
 
-			list = append(list, &Token{FUNCTION, t, line_no(input), nil})
+			list = append(list, &Token{FUNCTION, 0, t, line_no(input), nil})
 			continue
 		}
-		if text, update_input, ok := simple_oko_token(input, '$'); ok {
-			input = update_input
-			list = append(list, &Token{QUOTE, string(text), line_no(input), nil})
-			continue
-		}
+
+		// force characters
 		if text, update_input, ok := simple_oko_token(input, '.'); ok {
 			input = update_input
-			list = append(list, &Token{PARAGRAPH, string(text), line_no(input), nil})
+			list = append(list, &Token{PARAGRAPH, 0, string(text), line_no(input), nil})
 			continue
 		}
 
@@ -367,20 +383,20 @@ func parser(page *Page, source []byte) *Token_List {
 			input  = input[2:]
 			text  := extract_to_newline(input)
 			input  = input[len(text):]
-			list   = append(list, &Token{HTML_SNIPPET, string(text), line_no(input), nil})
+			list   = append(list, &Token{HTML_SNIPPET, 0, string(text), line_no(input), nil})
 			continue
 		}
 
 		if input[0] == '-' {
 			if count_sequential_runes(input, '-') == 3 {
 				input = input[3:]
-				list = append(list, &Token{DIVIDER, "", line_no(input), nil})
+				list = append(list, &Token{DIVIDER, 0, "", line_no(input), nil})
 				continue
 			}
 
 			if text, update_input, ok := simple_oko_token(input, '-'); ok {
 				input = update_input
-				list = append(list, &Token{LIST_ENTRY, string(text), line_no(input), nil})
+				list = append(list, &Token{LIST_ENTRY, 0, string(text), line_no(input), nil})
 				continue
 			}
 		}
@@ -456,7 +472,7 @@ func parser(page *Page, source []byte) *Token_List {
 					// subtract from line_no  ^ because we sliced it off just above
 					n := line_no(test_input) - 1
 
-					list = append(list, &Token{BLOCK_CODE, lang, n, nil})
+					list = append(list, &Token{BLOCK_CODE, 0, lang, n, nil})
 
 					var indent   int
 					var count    int
@@ -510,7 +526,7 @@ func parser(page *Page, source []byte) *Token_List {
 					code  = strings.ReplaceAll(code, "\t", "    ")
 					code  = strings.ReplaceAll(code, "\\}", "}")
 
-					list = append(list, &Token{CODE_GUTS, code, n+1, nil})
+					list = append(list, &Token{CODE_GUTS, 0, code, n+1, nil})
 
 					input = test_input[count+1:]
 
@@ -565,14 +581,14 @@ func parser(page *Page, source []byte) *Token_List {
 
 					if !found_valid_scope {
 						ident := extract_identifier(if_input)
-						list = append(list, &Token{ERROR, "no such scope " + string(ident), line_no(if_input), nil})
+						list = append(list, &Token{ERROR, 0, "no such scope " + string(ident), line_no(if_input), nil})
 						continue
 					}
 
 					if if_input[0] == '.' {
 						if_input = if_input[1:]
 					} else {
-						list = append(list, &Token{ERROR, "missing '.' separator in if-statement", line_no(if_input), nil})
+						list = append(list, &Token{ERROR, 0, "missing '.' separator in if-statement", line_no(if_input), nil})
 						continue
 					}
 
@@ -581,7 +597,7 @@ func parser(page *Page, source []byte) *Token_List {
 					if len(ident) > 0 {
 						if_input = if_input[len(ident):]
 					} else {
-						list = append(list, &Token{ERROR, "no variable in if-statement", line_no(if_input), nil})
+						list = append(list, &Token{ERROR, 0, "no variable in if-statement", line_no(if_input), nil})
 						continue
 					}
 
@@ -593,7 +609,7 @@ func parser(page *Page, source []byte) *Token_List {
 					active_block = append(active_block, &if_token)
 
 				} else {
-					b := &Token{BLOCK_START, str_ident, line_no(test_input), nil}
+					b := &Token{BLOCK_START, 0, str_ident, line_no(test_input), nil}
 					b.Vars = make(map[string]string)
 					list = append(list, b)
 					active_block = append(active_block, b)
@@ -607,7 +623,7 @@ func parser(page *Page, source []byte) *Token_List {
 
 		// PARAGRAPH
 		text := extract_to_newline(input)
-		list  = append(list, &Token{PARAGRAPH, string(text), line_no(input), nil})
+		list  = append(list, &Token{PARAGRAPH, 0, string(text), line_no(input), nil})
 		input = input[len(text):]
 	}
 

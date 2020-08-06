@@ -112,7 +112,7 @@ func recurse_render(the_page *Page, active_block *Token) string {
 			continue
 		}
 
-		if tok.Type < tok_inline_format && tok.Type > tok_headings {
+		if tok.Type < tok_inline_format {
 			tok.Text = inlines(tok.Text)
 		}
 
@@ -216,9 +216,9 @@ func recurse_render(the_page *Page, active_block *Token) string {
 				return content.String()
 		}
 
-		p := plate_entry(plate, tok.Type.String())
+		p := plate_entry_offset(plate, tok)
 
-		if tok.Type < tok_headings {
+		if tok.Type == HEADING {
 			clean_text := strip_inlines(tok.Text)
 			dirty_text := inlines(tok.Text)
 
