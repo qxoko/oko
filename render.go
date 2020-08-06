@@ -216,7 +216,13 @@ func recurse_render(the_page *Page, active_block *Token) string {
 				return content.String()
 		}
 
-		p := plate_entry_offset(plate, tok)
+		var p string
+
+		if tok.Type > tok_offset_min && tok.Type < tok_offset_max {
+			p = plate_entry_offset(plate, tok)
+		} else {
+			p = plate_entry(plate, tok.Type.String())
+		}
 
 		if tok.Type == HEADING {
 			clean_text := strip_inlines(tok.Text)

@@ -19,9 +19,12 @@ type Token struct {
 type Token_Type int
 
 const (
-	HEADING Token_Type = iota
-	PARAGRAPH
+	PARAGRAPH Token_Type = iota
 	LIST_ENTRY
+
+	tok_offset_min
+
+	HEADING
 	QUOTE
 
 	tok_inline_format
@@ -29,7 +32,7 @@ const (
 	IMAGE
 	TOKEN
 
-	tok_offset_check
+	tok_offset_max
 
 	MEDIA
 	ERROR
@@ -54,17 +57,20 @@ const (
 )
 
 var token_names = [...]string {
-	"heading",
 	"paragraph",
 	"list_entry",
+
+	"tok_offset_min",
+
+	"heading",
 	"quote",
 
-	"inline_format",
+	"tok_inline_format",
 
 	"image",
 	"token",
 
-	"offset_check",
+	"tok_offset_max",
 
 	"media",
 	"error",
