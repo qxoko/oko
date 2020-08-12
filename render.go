@@ -13,7 +13,10 @@ func render(p *Page) {
 		p.Plate = load_plate(plate_name)
 	} else {
 		p.Plate = default_plate
-		p.Style = config.Style
+
+		if len(p.Style) == 0 {
+			p.Style = config.Style
+		}
 	}
 
 	var body strings.Builder
