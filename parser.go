@@ -441,7 +441,7 @@ func parser(page *Page, source []byte) *Token_List {
 
 				switch k {
 					case "script":
-						page.Style = strings.Fields(v)
+						page.Script = strings.Fields(v)
 
 					case "style":
 						page.Style = strings.Fields(v)
