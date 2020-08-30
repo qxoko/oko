@@ -9,37 +9,41 @@ import (
 	"path/filepath"
 )
 
-type File_Format int
+type File_Type int
 
 const (
-	ANY File_Format = iota
-	OKO
-	HTML
+	STATIC File_Type = iota
+	MARKUP
+	DIR
 )
 
-type File_Info struct {
-	ID   string
-	Path string
-	Dir  string
+type File_Action int
 
-	Exclude bool
+const (
+	NONE File_Action = iota
+	NEEDS_UPDATE
+	NEEDS_DELETE
+)
 
-	Format File_Format
+type File struct {
+	ID         string
+	SourcePath string
+	OutputPath string
+
+	Type   File_Type
+	Action File_Action
+
+	Page *Page
+
 	Mod    time.Time
 }
 
-func walk(root string, extensions ...string) (map[string]*File_Info, time.Time) {
-	check_ext := false
-
-	if len(extensions) > 0 {
-		check_ext = true
-	}
-
-	var list = make(map[string]*File_Info)
-	var youngest time.Time
+func walk(root string) (map[string]*File, time.Time) {
+	var list = make(map[string]*File)
+	var age time.Time
 
 	if !path_exists(root) {
-		return list, youngest
+		return list, age // empty
 	}
 
 	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
@@ -48,7 +52,7 @@ func walk(root string, extensions ...string) (map[string]*File_Info, time.Time) 
 
 		skip := false
 
-		if prefix == "." && len(path) > 1 || prefix == "_" {
+		if (prefix == "." && len(path) > 1) || prefix == "_" {
 			skip = true
 		}
 
@@ -61,47 +65,40 @@ func walk(root string, extensions ...string) (map[string]*File_Info, time.Time) 
 			file_format := ANY
 
 			path, _ := filepath.Rel(root, path)
-			file_id := filepath.ToSlash(path) // id includes extension
+			file_id := filepath.ToSlash(path)
 
 			dir := filepath.Dir(path)
 
-			if check_ext {
-				is_match := false
+			is_any_special := false
 
-				// strip extension for markup files
-				file_id = file_id[:len(path) - len(file_ext)]
+			switch e := file_ext {
+				case ".html":
+					file_format    = HTML
+					is_any_special = true
 
-				if file_ext == ".html" {
-					file_format = HTML
-				} else {
-					file_format = OKO
-				}
+				case ".ø":
+					file_format    = OKO
+					is_any_special = true
 
-				if file_ext == ".txt" {
+				case ".txt":
 					if name == "robots.txt" {
 						return nil
 					}
-				}
+					file_format    = OKO
+					is_any_special = true
+			}
 
-				for _, e := range extensions {
-					if e == file_ext {
-						is_match = true
-						break
-					}
-				}
-
-				if !is_match {
-					return nil
-				}
+			if is_any_special {
+				file_id = fild_id[:len(path) - len(file_ext)]
 			}
 
 			t := info.ModTime()
 
-			if t.After(youngest) {
-				youngest = t
+			if t.After(age) {
+				age = t // update youngest file
 			}
 
-			file_info := &File_Info{
+			file_info := &File{
 				ID:     file_id,
 				Path:   path,
 				Dir:    dir,
@@ -127,119 +124,7 @@ func walk(root string, extensions ...string) (map[string]*File_Info, time.Time) 
 		return nil
 	})
 
-	return list, youngest
-}
-
-func compare_files(source, output map[string]*File_Info) (map[string]*File_Info, map[string]*File_Info) {
-	cap := len(source)
-
-	mod := make(map[string]*File_Info, cap)
-	del := make(map[string]*File_Info, cap)
-
-	for _, src := range source {
-		if dst, ok := output[src.ID]; ok {
-			if src.Mod.After(dst.Mod) {
-				mod[src.ID] = src
-			}
-		} else {
-			mod[src.ID] = src
-		}
-	}
-
-	for _, src := range output {
-		if f, ok := source[src.ID]; !ok {
-			del[src.ID] = src
-		} else if f.Exclude {
-			del[src.ID] = src
-		}
-	}
-
-	return mod, del
-}
-
-func compare_dirs(source, output, file_mod, file_del map[string]*File_Info) (map[string]bool, map[string]bool) {
-	cap := len(source)
-
-	source_dirs := make(map[string]bool, cap)
-	output_dirs := make(map[string]bool, cap)
-
-	for _, f := range source {
-		if f.Dir == "." { continue }
-		source_dirs[f.Dir] = true
-	}
-	for _, f := range output {
-		if f.Dir == "." { continue }
-		output_dirs[f.Dir] = true
-	}
-
-	mod := make(map[string]bool, cap)
-	del := make(map[string]bool, cap)
-
-	for _, f := range source {
-		if f.Dir == "." { continue }
-		if !output_dirs[f.Dir] {
-			mod[f.Dir] = true
-		}
-	}
-	for _, f := range output {
-		if f.Dir == "." { continue }
-		if !source_dirs[f.Dir] {
-			del[f.Dir] = true
-		}
-	}
-
-	return mod, del
-}
-
-type Support_File int
-
-const (
-	S_PLATES Support_File = iota
-	S_SNIPPETS
-	S_FUNCTIONS
-)
-
-func support_files(file_type Support_File, age time.Time) []string {
-	root := ""
-	pref := ""
-
-	switch file_type {
-		case S_PLATES:
-			root = "_data/plates"
-			pref = "plate_"
-
-		case S_SNIPPETS:
-			root = "_data/snippets"
-			pref = "snip_"
-
-		case S_FUNCTIONS:
-			root = "_data/functions"
-			pref = "func_"
-	}
-
-	var list []string
-
-	if !path_exists(root) {
-		return list
-	}
-
-	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		name   := info.Name()
-		prefix := name[0:1]
-
-		if prefix == "." || prefix == "_" || info.IsDir() {
-			return nil
-		}
-
-		if info.ModTime().After(age) {
-			name = pref + name[0:len(name) - len(filepath.Ext(name))]
-			list = append(list, name)
-		}
-
-		return nil
-	})
-
-	return list
+	return list, age
 }
 
 //

@@ -3,238 +3,107 @@ package main
 import (
 	"os"
 	"fmt"
-	"sort"
-	"path/filepath"
 )
 
-var config *Config
+var config   *Config
+var AllFiles map[string]*File
 
-func do_pages() {
-	source, _   := walk(".", config.Extensions...)
-	output, age := walk(config.Output, ".html")
+func oko() {
+	AllFiles, input_age  := get_files(".")
+	output,   output_age := get_files(config.Output
 
-	for _, file := range source {
-		if file.Format != OKO {
-			continue
-		}
+	// plates    := support_files("_data/plates",    output_age)
+	// functions := support_files("_data/functions", output_age)
+	// snippets  := support_files("_data/snippets",  output_age)
 
-		the_page := make_page(file)
-		bytes    := load_file_bytes(the_page.SourcePath)
-
-		the_page.List = parser(the_page, bytes)
-
-		if config.ShowDrafts {
-			continue
-		}
-
-		if the_page.IsDraft {
-			file.Exclude = true
-		}
-	}
-
-	// because it is impossible to determine
-	// what user code is going to do before it
-	// runs, we must run every function every
-	// single time to determine the dependencies
-	for _, page := range PageList {
-		do_functions(page)
-	}
-
-	file_mod, file_del := compare_files(source, output)
-	path_mod, path_del := compare_dirs(source, output, file_mod, file_del)
-
-	plates    := support_files(S_PLATES,    age)
-	snippets  := support_files(S_SNIPPETS,  age)
-	functions := support_files(S_FUNCTIONS, age)
-
-	if config.DoAllPages {
-		file_mod  = make(map[string]*File_Info, len(source))
-
-		for _, f := range source {
-			file_mod[f.ID] = f
-		}
-
-	} else {
-		for _, file := range file_mod {
-			if list, ok := DepTree[file.ID]; ok {
-				for _, id := range list {
-					file_mod[id] = source[id]
-				}
-			}
-		}
-		for _, s := range snippets {
-			for _, id := range DepTree[s] {
-				file_mod[id] = source[id]
-			}
-		}
-		for _, p := range plates {
-			for _, id := range DepTree[p] {
-				file_mod[id] = source[id]
-			}
-		}
-		for _, p := range functions {
-			for _, id := range DepTree[p] {
-				file_mod[id] = source[id]
-			}
-		}
-	}
-
-	if !path_exists(config.Output) {
-		mkdir(config.Output)
-	}
-
-	for path, _ := range path_mod {
-		mkdir(filepath.Join(config.Output, path))
-	}
-
-	sitemap_path := filepath.Join(config.Output, `sitemap.xml`)
-
-	if config.Sitemap {
-		if !file_exists(sitemap_path) || len(file_mod) > 0 {
-			sitemap(sitemap_path)
-		}
-	} else {
-		if file_exists(sitemap_path) {
-			delete_file(sitemap_path)
-		}
-	}
-
-	file_mod_ordered := make([]*File_Info, 0, len(file_mod))
-
-	for _, file := range file_mod {
-		if file.Exclude {
-			continue
-		}
-		file_mod_ordered = append(file_mod_ordered, file)
-	}
-
-	sort.SliceStable(file_mod_ordered, func(i, j int) bool {
-		return file_mod_ordered[i].ID < file_mod_ordered[j].ID
-	})
-
-	for _, file := range file_mod_ordered {
-		ID := file.ID
-
-		if file.Format == HTML {
-			copy_file(file.Path, filepath.Join(config.Output, file.Path))
-			continue
-		}
-
-		page := PageList[ID]
-
-		if page.IsDraft && !config.ShowDrafts {
-			continue
-		}
-
-		render(page)
-	}
-
-	for _, file := range file_del {
-		delete_file(filepath.Join(config.Output, file.Path))
-	}
-
-	for path, _ := range path_del {
-		delete_file(filepath.Join(config.Output, path))
-	}
-
-	if len(file_mod_ordered) > 0 {
-		fmt.Println("[ø] updated pages\n")
-
-		for _, file := range file_mod_ordered {
-			fmt.Println("   ", file.ID)
-		}
-
-		for _, file := range secondary_renders {
-			fmt.Println("   ", file.ID)
-		}
-
-		fmt.Println()
-	}
-}
-
-func do_static_files() {
-	if len(config.Include) == 0 {
+	// reject early if nothing has changed
+	if output_age.After(input_age) {
+		print("[ø] no changes!")
 		return
 	}
 
-	report_list := make([]string, 0, 16)
+	// parse all files
+	for _, file := range AllFiles {
+		if file.Type == MARKUP {
+			create_page(file)
+		}
+	}
 
-	for _, file := range config.Include {
-		if path_exists(file) {
-			source, _ := walk(file)
-			output, _ := walk(filepath.Join(config.Output, file))
+	// execute all javascript
+	for _, file := range AllFiles {
+		if file.Type == MARKUP && file.Page.HasFunction {
+			do_functions(file.Page)
+		}
+	}
 
-			for _, f := range source {
-				f.Dir = filepath.Join(file, f.Dir) // @hack
-			}
-			for _, f := range output {
-				f.Dir = filepath.Join(file, f.Dir) // @hack
-			}
+	// set flags on file list
+	set_update_flags(AllFiles, output)
 
-			file_mod, file_del := compare_files(source, output)
-			path_mod, path_del := compare_dirs(source, output, file_mod, file_del)
-
-			for path, _ := range path_mod {
-				mkdir(filepath.Join(config.Output, path))
-			}
-
-			for _, n := range file_mod {
-				s := filepath.Join(file, n.Path)
-				o := filepath.Join(config.Output, s)
-				copy_file(s, o)
-				report_list = append(report_list, s)
-			}
-
-			for _, n := range file_del {
-				delete_file(filepath.Join(config.Output, file, n.Path))
-			}
-
-			for path, _ := range path_del {
-				mkdir(filepath.Join(config.Output, path))
-			}
-		} else {
-			// single files
-			out_path := filepath.Join(config.Output, file)
-
-			if info, ok := file_data(file); ok {
-				do_copy := false
-
-				if out, ok := file_data(out_path); ok {
-					if info.ModTime().After(out.ModTime()) {
-						do_copy = true
-					}
-				} else {
-					do_copy = true
-				}
-
-				if do_copy {
-					copy_file(file, out_path)
-					report_list = append(report_list, file)
-				}
-
-			} else {
-				if file_exists(out_path) {
-					delete_file(out_path)
-					continue
-				}
-
-				warning("no file to include: " + file)
+	if config.DoAllPages {
+		for _, file := range AllFiles {
+			if file.Type == MARKUP {
+				file.Action = NEEDS_UPDATE
 			}
 		}
 	}
 
-	if len(report_list) > 0 {
-		fmt.Println("[ø] updated static files\n")
-
-		sort.SliceStable(report_list, func(i, j int) bool {
-			return report_list[i] < report_list[j]
-		})
-
-		for _, file := range report_list {
-			fmt.Println("   ", file)
+	// handle copy oprations
+	for _, file := range AllFiles {
+		if file.Type == DIR {
+			switch file.Action
+				case NEEDS_UPDATE: mkdir(file.OutputPath)
+				case NEEDS_DELETE: delete_file(file.OutputPath)
+			}
+			continue
 		}
 
-		fmt.Println()
+		switch file.Action {
+			case NEEDS_UPDATE:
+				if file.Type == MARKUP {
+					render_markup(file)
+				} else {
+					copy_file(file)
+				}
+
+			case NEEDS_DELETE:
+				delete_file(file)
+		}
+	}
+
+	print_warnings()
+}
+
+func set_update_flags(input, output map[string]*File) {
+	// set updates by modification time
+	for id, i := range input {
+		if o, ok := output[id]; ok {
+			if i.ModTime.After(o.ModTime) {
+				i.Action = NEEDS_UPDATE
+			}
+		} else {
+			i.Action = NEEDS_UPDATE
+		}
+	}
+
+	for id, o := range output {
+		if i, ok := input[id]; !ok {
+			o.Action = NEEDS_DELETE
+		} else if i.Exclude {
+			o.Action = NEEDS_DELETE
+		}
+	}
+
+	// dependencies / drafts
+	for _, i := range input {
+		if i.Type == MARKUP {
+			if i.Page.IsDraft && !config.ShowDrafts { // exclude drafts
+				i.Action = NONE
+				continue
+			}
+			for id, _ := i.Page.Deps {
+				input[id] = NEEDS_UPDATE // single depth pass
+			}
+		}
 	}
 }
 
@@ -242,29 +111,64 @@ func main() {
 	new_config   := false
 	do_all_pages := false
 	show_drafts  := false
+	watch_files  := false
+	run_server   := false
 
 	for _, arg := range os.Args[1:] {
-		switch arg[1:] {
-			case "new-config": new_config   = true
-			case "all":        do_all_pages = true
-			case "drafts":     show_drafts  = true
+		if strings.HasPrefix(arg, `--`) {
+			switch arg[2:] {
+				case "new-config": new_config   = true
+				case "all":        do_all_pages = true
+				case "drafts":     show_drafts  = true
+
+				case "watch":
+					watch_files = true
+
+				case "serve":
+					watch_files = true
+					run_server  = true
+			}
+		} else if strings.HasPrefix(arg, `-`) {
+			for _, c := range arg[1:] {
+				switch c {
+					case 'a':
+						do_all_pages = true
+
+					case 'd':
+						show_drafts  = true
+
+					case 's':
+						watch_files  = true
+						run_server   = true
+
+					case 'w':
+						watch_files  = true
+
+					case 'D':
+						do_all_pages = true
+						show_drafts  = true
+						watch_files  = true
+						run_server   = true
+				}
+			}
+		} else {
+			panic("bad argument") // @error
 		}
 	}
 
 	if new_config {
 		make_new_config_file()
-		fmt.Println(`created project!`)
+		print("[ø] created project file!")
 		return
 	}
 
 	config = load_config()
 
 	if config == nil {
-		fmt.Println("[ø] not an oko project!")
+		print("[ø] not an oko project!")
 		return
 	}
 
-	// set config from argument flags
 	if do_all_pages {
 		config.DoAllPages = true
 	}
@@ -272,8 +176,10 @@ func main() {
 		config.ShowDrafts = true
 	}
 
-	do_pages()
-	do_static_files()
+	oko()
 
-	print_warnings()
+	if run_server || watch_files {
+		print("\n[ø] file watcher/server not working")
+		return
+	}
 }
