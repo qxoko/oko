@@ -446,11 +446,6 @@ func parser(page *Page, source []byte) *Token_List {
 					case "style":
 						page.Style = strings.Fields(v)
 
-					/*case "tags":
-						for _, t := range strings.Fields(v) {
-							page.Tags[t] = true
-						}*/
-
 					case "draft":
 						if v == "true" {
 							page.IsDraft = true

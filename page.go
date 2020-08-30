@@ -19,7 +19,6 @@ type Page struct {
 	CurrentParent *Page // @hack
 
 	IsDraft bool
-	IsIndex bool
 	Format  File_Format
 
 	Plate      *Plate
@@ -27,10 +26,9 @@ type Page struct {
 
 	Vars       map[string]string
 	Meta       map[string]string
-	Tags       map[string]bool
 }
 
-func make_page(info *File_Info) *Page {
+func make_page(info *File) *Page {
 	if p, exists := PageList[info.ID]; exists {
 		return p
 	}
@@ -46,14 +44,11 @@ func make_page(info *File_Info) *Page {
 
 	new_page.Vars = make(map[string]string, 8)
 	new_page.Meta = make(map[string]string, 8)
-	new_page.Tags = make(map[string]bool,   8)
 
 	if info.ID == "index" {
 		new_page.URLPath = ""
-		new_page.IsIndex = true
 	} else {
 		new_page.URLPath = "/" + strings.Replace(info.ID, "/index", "", 1)
-		new_page.IsIndex = false
 	}
 
 	new_page.Vars["page_path"] = new_page.URLPath
