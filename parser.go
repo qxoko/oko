@@ -355,7 +355,7 @@ func parser(page *Page, source []byte) *Token_List {
 			t     := string(text)
 			name  := strings.SplitN(t, " ", 2)[0]
 
-			DepTree[name]    = append(DepTree[name], page.ID)
+			DepTree[name] = append(DepTree[name], page.ID)
 
 			list = append(list, &Token{IMPORT, 0, t, line_no(input), nil})
 			continue
@@ -376,6 +376,8 @@ func parser(page *Page, source []byte) *Token_List {
 			name  := "func_" + t
 
 			DepTree[name] = append(DepTree[name], page.ID)
+
+			page.HasFunction = true
 
 			list = append(list, &Token{FUNCTION, 0, t, line_no(input), nil})
 			continue

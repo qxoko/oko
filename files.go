@@ -13,6 +13,7 @@ type File_Type int
 
 const (
 	STATIC File_Type = iota
+	STATIC_PAGE // html files
 	MARKUP
 	DIR
 )
@@ -33,9 +34,11 @@ type File struct {
 	Type   File_Type
 	Action File_Action
 
+	IsDraft bool
+
 	Page *Page
 
-	Mod    time.Time
+	Mod time.Time
 }
 
 func walk(root string) (map[string]*File, time.Time) {
@@ -56,59 +59,8 @@ func walk(root string) (map[string]*File, time.Time) {
 			skip = true
 		}
 
-		if !info.IsDir() {
-			if skip {
-				return nil
-			}
-
-			file_ext    := filepath.Ext(name)
-			file_format := ANY
-
-			path, _ := filepath.Rel(root, path)
-			file_id := filepath.ToSlash(path)
-
-			dir := filepath.Dir(path)
-
-			is_any_special := false
-
-			switch e := file_ext {
-				case ".html":
-					file_format    = HTML
-					is_any_special = true
-
-				case ".ø":
-					file_format    = OKO
-					is_any_special = true
-
-				case ".txt":
-					if name == "robots.txt" {
-						return nil
-					}
-					file_format    = OKO
-					is_any_special = true
-			}
-
-			if is_any_special {
-				file_id = fild_id[:len(path) - len(file_ext)]
-			}
-
-			t := info.ModTime()
-
-			if t.After(age) {
-				age = t // update youngest file
-			}
-
-			file_info := &File{
-				ID:     file_id,
-				Path:   path,
-				Dir:    dir,
-				Format: file_format,
-				Mod:    t,
-			}
-
-			list[file_id] = file_info
-
-		} else {
+		// directories
+		if info.IsDir() {
 			if name == config.Output {
 				skip = true
 			}
@@ -120,11 +72,119 @@ func walk(root string) (map[string]*File, time.Time) {
 			if skip {
 				return filepath.SkipDir
 			}
+
+			path, _ := filepath.Rel(root, path)
+
+			file_info := &File {
+				ID:   path,
+				SourcePath: path,
+				OutputPath: filepath.Join(config.Output, path),
+				Type: DIR,
+				Mod:  info.ModTime(),
+			}
+
+			list[path] = file_info
+
+			return nil
 		}
+
+		// files
+		if skip { return nil }
+
+		file_ext := filepath.Ext(name)
+
+		for _, f := range config.Exclude {
+			if file_ext == f {
+				return nil
+			}
+		}
+
+		file_type := STATIC
+
+		path, _  = filepath.Rel(root, path)
+		file_id := filepath.ToSlash(path)
+		output  := filepath.Join(config.Output, file_id)
+
+		is_any_special := true
+
+		switch file_ext {
+			case ".html":
+				file_type = STATIC_PAGE
+				config.PageCount++
+
+			case ".ø":
+				file_type = MARKUP
+				config.PageCount++
+
+			case ".txt":
+				if name == "robots.txt" {
+					break
+				}
+				file_type = MARKUP
+				config.PageCount++
+
+			default:
+				is_any_special = false
+		}
+
+		if is_any_special {
+			file_id = file_id[:len(path) - len(file_ext)]
+			output = filepath.Join(config.Output, file_id) + ".html"
+		}
+
+		t := info.ModTime()
+
+		if t.After(age) {
+			age = t // update youngest file
+		}
+
+		file_info := &File {
+			ID:     file_id,
+			SourcePath: path,
+			OutputPath: output,
+			Type:   file_type,
+			Mod:    t,
+		}
+
+		list[file_id] = file_info
+
 		return nil
 	})
 
 	return list, age
+}
+
+func support_files(age time.Time) map[string]bool {
+	list := make(map[string]bool, 16)
+
+	filepath.Walk("_data", func(path string, info os.FileInfo, err error) error {
+		name        := info.Name()
+		path_prefix := name[0:1]
+
+		id_prefix := ""
+
+		if info.IsDir() {
+			switch name {
+				case "plates":    id_prefix = "plate_"
+				case "snippets":  id_prefix = "snip_"
+				case "functions": id_prefix = "functions_"
+			}
+		}
+
+		if path_prefix == "." || path_prefix == "_" {
+			return nil
+		}
+
+		if info.ModTime().After(age) {
+			name = id_prefix + name[0:len(name) - len(filepath.Ext(name))]
+
+			list[name] = true
+		}
+
+		return nil
+	})
+
+	return list
 }
 
 //

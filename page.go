@@ -1,49 +1,36 @@
 package main
 
-import (
-	"strings"
-	"path/filepath"
-)
-
-var PageList = make(map[string]*Page)
+import "strings"
 
 type Page struct {
-	ID         string
-	SourcePath string
-	OutputPath string
-	URLPath    string
+	ID      string
+	URLPath string
 
-	Style      []string
-	Script     []string
+	Style  []string
+	Script []string
 
 	CurrentParent *Page // @hack
 
-	IsDraft bool
-	Format  File_Format
+	IsDraft     bool
+	HasFunction bool
 
-	Plate      *Plate
-	List       *Token_List
+	Plate *Plate
+	List  *Token_List
 
-	Vars       map[string]string
-	Meta       map[string]string
+	Deps map[string]bool
+	Vars map[string]string
+	Meta map[string]string
 }
 
-func make_page(info *File_Info) *Page {
-	if p, exists := PageList[info.ID]; exists {
-		return p
-	}
-
-	output := filepath.Join(config.Output, info.ID + ".html")
-
-	new_page := &Page{
+func create_page(info *File) {
+	new_page := &Page {
 		ID: info.ID,
-		SourcePath: info.Path,
-		OutputPath: output,
-		Format: info.Format,
 	}
 
 	new_page.Vars = make(map[string]string, 8)
 	new_page.Meta = make(map[string]string, 8)
+
+	new_page.Vars["page_path"] = new_page.URLPath
 
 	if info.ID == "index" {
 		new_page.URLPath = ""
@@ -51,9 +38,18 @@ func make_page(info *File_Info) *Page {
 		new_page.URLPath = "/" + strings.Replace(info.ID, "/index", "", 1)
 	}
 
-	new_page.Vars["page_path"] = new_page.URLPath
+	// parse
+	bytes := load_file_bytes(info.SourcePath)
+	new_page.List = parser(new_page, bytes)
 
-	PageList[info.ID] = new_page
+	info.IsDraft = new_page.IsDraft
 
-	return new_page
+	info.Page = new_page
+}
+
+func get_page(id string) (*Page, bool) {
+	if p, ok := AllFiles[id]; ok && p.Type == MARKUP {
+		return p.Page, true
+	}
+	return nil, false
 }

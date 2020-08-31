@@ -8,7 +8,9 @@ import (
 	"path/filepath"
 )
 
-func render(p *Page) {
+func render(info *File) {
+	p := info.Page
+
 	if plate_name, ok := p.Vars["plate"]; ok {
 		p.Plate = load_plate(plate_name)
 	} else {
@@ -69,7 +71,7 @@ func render(p *Page) {
 		title = config.Title
 	}
 
-	file, err := os.Create(p.OutputPath)
+	file, err := os.Create(info.OutputPath)
 
 	if err != nil {
 		panic(err)
@@ -165,7 +167,7 @@ func recurse_render(the_page *Page, active_block *Token) string {
 				}
 
 				if v, ok := plate.Tokens[t]; ok {
-					if p, ok := PageList[n[0]]; ok {
+					if p, ok := get_page(n[0]); ok {
 						content.WriteString(inlines(mapmap(v, p.Vars, true)))
 					} else {
 						warning("skipped import " + n[0])
@@ -458,11 +460,21 @@ func meta(the_page *Page) string {
 }
 
 func sitemap(path string) {
-	ordered    := make([]string, len(PageList))
+	ordered    := make([]string, config.PageCount)
 	url_source := `<url><loc>%s%s</loc></url>`
 
-	for _, page := range PageList {
-		ordered = append(ordered, sub_sprint(url_source, config.Domain, page.URLPath))
+	for _, page := range AllFiles {
+		if page.Type == STATIC_PAGE {
+
+			path := page.SourcePath
+			path  = path[0:len(path) - len(filepath.Ext(path))]
+
+			ordered = append(ordered, sub_sprint(url_source, config.Domain, path))
+		}
+
+		if page.Type == MARKUP {
+			ordered = append(ordered, sub_sprint(url_source, config.Domain, page.Page.URLPath))
+		}
 	}
 
 	sort.SliceStable(ordered, func(i, j int) bool {

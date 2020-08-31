@@ -18,8 +18,8 @@ func if_project_value(tok *Token) bool {
 			if len(config.Style) > 0 {
 				return true
 			}
-		case "include":
-			if len(config.Include) > 0 {
+		case "exclude":
+			if len(config.Exclude) > 0 {
 				return true
 			}
 		case "meta":

@@ -5,8 +5,6 @@ import (
 	"github.com/robertkrimen/otto"
 )
 
-var secondary_renders = make(map[string]*Page)
-
 func do_functions(page *Page) {
 	for _, f := range page.List.Tokens {
 		if f.Type == FUNCTION {
@@ -40,7 +38,7 @@ func do_single_function(page *Page, name string) string {
 	vm.Set("get_page", func(call otto.FunctionCall) otto.Value {
 		id := call.Argument(0).String()
 
-		if p, ok := PageList[id]; ok {
+		if p, ok := get_page(id); ok {
 			js_p, err := vm.ToValue(p)
 
 			if err != nil {

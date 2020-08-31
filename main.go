@@ -2,25 +2,21 @@ package main
 
 import (
 	"os"
-	"fmt"
+	"strings"
 )
 
 var config   *Config
 var AllFiles map[string]*File
 
 func oko() {
-	AllFiles, input_age  := get_files(".")
-	output,   output_age := get_files(config.Output
+	input,  _ := walk(".")
+	output, _ := walk(config.Output)
+
+	AllFiles = input
 
 	// plates    := support_files("_data/plates",    output_age)
 	// functions := support_files("_data/functions", output_age)
 	// snippets  := support_files("_data/snippets",  output_age)
-
-	// reject early if nothing has changed
-	if output_age.After(input_age) {
-		print("[ø] no changes!")
-		return
-	}
 
 	// parse all files
 	for _, file := range AllFiles {
@@ -47,26 +43,36 @@ func oko() {
 		}
 	}
 
-	// handle copy oprations
+	// create directories
+	for _, file := range AllFiles {
+		if file.Type == DIR && file.Action == NEEDS_UPDATE {
+			mkdir(file.OutputPath)
+		}
+	}
+
+	// create/delete files
 	for _, file := range AllFiles {
 		if file.Type == DIR {
-			switch file.Action
-				case NEEDS_UPDATE: mkdir(file.OutputPath)
-				case NEEDS_DELETE: delete_file(file.OutputPath)
-			}
 			continue
 		}
 
 		switch file.Action {
 			case NEEDS_UPDATE:
 				if file.Type == MARKUP {
-					render_markup(file)
+					render(file)
 				} else {
-					copy_file(file)
+					copy_file(file.SourcePath, file.OutputPath)
 				}
 
 			case NEEDS_DELETE:
-				delete_file(file)
+				// delete_file(file.OutputPath)
+		}
+	}
+
+	// delete directories
+	for _, file := range AllFiles {
+		if file.Type == DIR && file.Action == NEEDS_DELETE {
+			delete_file(file.OutputPath)
 		}
 	}
 
@@ -77,7 +83,7 @@ func set_update_flags(input, output map[string]*File) {
 	// set updates by modification time
 	for id, i := range input {
 		if o, ok := output[id]; ok {
-			if i.ModTime.After(o.ModTime) {
+			if i.Mod.After(o.Mod) {
 				i.Action = NEEDS_UPDATE
 			}
 		} else {
@@ -88,7 +94,7 @@ func set_update_flags(input, output map[string]*File) {
 	for id, o := range output {
 		if i, ok := input[id]; !ok {
 			o.Action = NEEDS_DELETE
-		} else if i.Exclude {
+		} else if i.IsDraft && !config.ShowDrafts {
 			o.Action = NEEDS_DELETE
 		}
 	}
@@ -100,8 +106,8 @@ func set_update_flags(input, output map[string]*File) {
 				i.Action = NONE
 				continue
 			}
-			for id, _ := i.Page.Deps {
-				input[id] = NEEDS_UPDATE // single depth pass
+			for id, _ := range i.Page.Deps {
+				input[id].Action = NEEDS_UPDATE // single depth pass
 			}
 		}
 	}
@@ -179,7 +185,6 @@ func main() {
 	oko()
 
 	if run_server || watch_files {
-		print("\n[ø] file watcher/server not working")
-		return
+
 	}
 }
