@@ -28,7 +28,7 @@ type Page struct {
 	Meta       map[string]string
 }
 
-func make_page(info *File) *Page {
+func make_page(info *File_Info) *Page {
 	if p, exists := PageList[info.ID]; exists {
 		return p
 	}
