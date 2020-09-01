@@ -34,9 +34,7 @@ func make_favicon(f string) string {
 //
 // External Services
 //
-type Media_Service int
-
-const (
+type Media_Service int; const (
 	YOUTUBE Media_Service = iota
 	VIMEO
 )
@@ -59,13 +57,13 @@ func media_vimeo(viewcode, ratio string, args []string) string {
 				iframe = strings.Replace(iframe, `&title=0&byline=0&portrait=0`, ``, 1)
 
 			case "hide_title":
-				iframe = strings.Replace(iframe, `&title=0`, ``, 1)
+				iframe = strings.Replace(iframe, `&title=0`,    ``, 1)
 
 			case "hide_portrait":
 				iframe = strings.Replace(iframe, `&portrait=0`, ``, 1)
 
 			case "hide_byline":
-				iframe = strings.Replace(iframe, `&byline=0`, ``, 1)
+				iframe = strings.Replace(iframe, `&byline=0`,   ``, 1)
 		}
 	}
 

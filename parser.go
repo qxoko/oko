@@ -6,7 +6,7 @@ import (
 	"unicode"
 )
 
-var DepTree = make(map[string][]string)
+var ExternalDeps = make(map[string][]string)
 
 type Token struct {
 	Type Token_Type
@@ -16,9 +16,7 @@ type Token struct {
 	Vars map[string]string
 }
 
-type Token_Type int
-
-const (
+type Token_Type int; const (
 	PARAGRAPH Token_Type = iota
 	LIST_ENTRY
 
@@ -355,7 +353,7 @@ func parser(page *Page, source []byte) *Token_List {
 			t     := string(text)
 			name  := strings.SplitN(t, " ", 2)[0]
 
-			DepTree[name] = append(DepTree[name], page.ID)
+			ExternalDeps[name] = append(ExternalDeps[name], page.ID)
 
 			list = append(list, &Token{IMPORT, 0, t, line_no(input), nil})
 			continue
@@ -365,7 +363,7 @@ func parser(page *Page, source []byte) *Token_List {
 			t     := string(text)
 			name  := "snip_" + t
 
-			DepTree[name] = append(DepTree[name], page.ID)
+			ExternalDeps[name] = append(ExternalDeps[name], page.ID)
 
 			list = append(list, &Token{SNIPPET, 0, t, line_no(input), nil})
 			continue
@@ -375,7 +373,7 @@ func parser(page *Page, source []byte) *Token_List {
 			t     := string(text)
 			name  := "func_" + t
 
-			DepTree[name] = append(DepTree[name], page.ID)
+			ExternalDeps[name] = append(ExternalDeps[name], page.ID)
 
 			page.HasFunction = true
 
@@ -476,6 +474,9 @@ func parser(page *Page, source []byte) *Token_List {
 
 					if len(lang) == 0 {
 						lang = ""
+					} else {
+						name := "syntax_" + lang
+						ExternalDeps[name] = append(ExternalDeps[name], page.ID)
 					}
 
 					test_input = test_input[c+1:]
@@ -639,35 +640,35 @@ func parser(page *Page, source []byte) *Token_List {
 
 	if name, ok := page.Vars["plate"]; ok {
 		n := "plate_" + name
-		DepTree[n] = append(DepTree[n], page.ID)
+		ExternalDeps[n] = append(ExternalDeps[n], page.ID)
 
 		plate := load_plate(name)
 
 		if len(plate.SnippetBefore) > 0 {
 			for _, s := range plate.SnippetBefore {
 				name := "snip_" + s
-				DepTree[name] = append(DepTree[name], page.ID)
+				ExternalDeps[name] = append(ExternalDeps[name], page.ID)
 			}
 		}
 
 		if len(plate.SnippetAfter) > 0 {
 			for _, s := range plate.SnippetAfter {
 				name := "snip_" + s
-				DepTree[name] = append(DepTree[name], page.ID)
+				ExternalDeps[name] = append(ExternalDeps[name], page.ID)
 			}
 		}
 
 		if len(plate.BodyBefore) > 0 {
 			for _, s := range plate.BodyBefore {
 				name := "snip_" + s
-				DepTree[name] = append(DepTree[name], page.ID)
+				ExternalDeps[name] = append(ExternalDeps[name], page.ID)
 			}
 		}
 
 		if len(plate.BodyAfter) > 0 {
 			for _, s := range plate.BodyAfter {
 				name := "snip_" + s
-				DepTree[name] = append(DepTree[name], page.ID)
+				ExternalDeps[name] = append(ExternalDeps[name], page.ID)
 			}
 		}
 	}

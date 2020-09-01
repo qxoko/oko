@@ -27,6 +27,7 @@ func create_page(info *File) {
 		ID: info.ID,
 	}
 
+	new_page.Deps = make(map[string]bool,   8)
 	new_page.Vars = make(map[string]string, 8)
 	new_page.Meta = make(map[string]string, 8)
 

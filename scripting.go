@@ -45,7 +45,7 @@ func do_single_function(page *Page, name string) string {
 				panic(err)
 			}
 
-			DepTree[page.ID] = append(DepTree[page.ID], id)
+			ExternalDeps[page.ID] = append(ExternalDeps[page.ID], id)
 
 			return js_p
 		}

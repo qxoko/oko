@@ -9,18 +9,14 @@ import (
 	"path/filepath"
 )
 
-type File_Type int
-
-const (
+type File_Type int; const (
 	STATIC File_Type = iota
 	STATIC_PAGE // html files
 	MARKUP
 	DIR
 )
 
-type File_Action int
-
-const (
+type File_Action int; const (
 	NONE File_Action = iota
 	NEEDS_UPDATE
 	NEEDS_DELETE
@@ -36,7 +32,8 @@ type File struct {
 
 	IsDraft bool
 
-	Page *Page
+	Children []*File
+	Page       *Page
 
 	Mod time.Time
 }
@@ -48,6 +45,8 @@ func walk(root string) (map[string]*File, time.Time) {
 	if !path_exists(root) {
 		return list, age // empty
 	}
+
+	var owner_directory *File
 
 	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		name   := info.Name()
@@ -83,21 +82,24 @@ func walk(root string) (map[string]*File, time.Time) {
 				Mod:  info.ModTime(),
 			}
 
+			owner_directory = file_info
+
 			list[path] = file_info
 
 			return nil
 		}
 
 		// files
-		if skip { return nil }
-
 		file_ext := filepath.Ext(name)
 
 		for _, f := range config.Exclude {
 			if file_ext == f {
-				return nil
+				skip = true
+				break
 			}
 		}
+
+		if skip { return nil }
 
 		file_type := STATIC
 
@@ -112,12 +114,9 @@ func walk(root string) (map[string]*File, time.Time) {
 				file_type = STATIC_PAGE
 				config.PageCount++
 
-			case ".ø":
-				file_type = MARKUP
-				config.PageCount++
-
-			case ".txt":
+			case ".ø", ".txt":
 				if name == "robots.txt" {
+					is_any_special = false
 					break
 				}
 				file_type = MARKUP
@@ -129,7 +128,7 @@ func walk(root string) (map[string]*File, time.Time) {
 
 		if is_any_special {
 			file_id = file_id[:len(path) - len(file_ext)]
-			output = filepath.Join(config.Output, file_id) + ".html"
+			output  = filepath.Join(config.Output, file_id) + ".html"
 		}
 
 		t := info.ModTime()
@@ -145,6 +144,8 @@ func walk(root string) (map[string]*File, time.Time) {
 			Type:   file_type,
 			Mod:    t,
 		}
+
+		owner_directory.Children = append(owner_directory.Children, file_info)
 
 		list[file_id] = file_info
 
@@ -168,6 +169,8 @@ func support_files(age time.Time) map[string]bool {
 				case "plates":    id_prefix = "plate_"
 				case "snippets":  id_prefix = "snip_"
 				case "functions": id_prefix = "functions_"
+				case "syntax":    id_prefix = "syntax_"
+				default: return filepath.SkipDir
 			}
 		}
 
@@ -177,7 +180,6 @@ func support_files(age time.Time) map[string]bool {
 
 		if info.ModTime().After(age) {
 			name = id_prefix + name[0:len(name) - len(filepath.Ext(name))]
-
 			list[name] = true
 		}
 
@@ -221,7 +223,7 @@ func file_data(path string) (os.FileInfo, bool) {
 }
 
 func mkdir(path string) {
-	os.MkdirAll(path, os.ModePerm)
+	os.MkdirAll(path, os.ModeDir)
 }
 
 func copy_file(src, dst string) {
@@ -233,7 +235,7 @@ func copy_file(src, dst string) {
 
 	defer source.Close()
 
-	destination, err := os.Create(dst)
+	destination, err := os.OpenFile(dst, os.O_CREATE, 0755)
 
 	if err != nil {
 		panic(err)
