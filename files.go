@@ -46,8 +46,6 @@ func walk(root string) (map[string]*File, time.Time) {
 		return list, age // empty
 	}
 
-	var owner_directory *File
-
 	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		name   := info.Name()
 		prefix := name[0:1]
@@ -81,8 +79,6 @@ func walk(root string) (map[string]*File, time.Time) {
 				Type: DIR,
 				Mod:  info.ModTime(),
 			}
-
-			owner_directory = file_info
 
 			list[path] = file_info
 
@@ -138,16 +134,14 @@ func walk(root string) (map[string]*File, time.Time) {
 		}
 
 		file_info := &File {
-			ID:     file_id,
-			SourcePath: path,
-			OutputPath: output,
-			Type:   file_type,
-			Mod:    t,
+			ID:         filepath.Clean(file_id),
+			SourcePath: filepath.Clean(path),
+			OutputPath: filepath.Clean(output),
+			Type:       file_type,
+			Mod:        t,
 		}
 
-		owner_directory.Children = append(owner_directory.Children, file_info)
-
-		list[file_id] = file_info
+		list[file_info.ID] = file_info
 
 		return nil
 	})

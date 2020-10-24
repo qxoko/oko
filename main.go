@@ -87,6 +87,13 @@ func set_update_flags(input, output map[string]*File, support map[string]bool) {
 		} else {
 			i.Action = NEEDS_UPDATE
 		}
+
+		// draft excluder
+		if i.Type == MARKUP {
+			if i.Page.IsDraft && !config.ShowDrafts {
+				i.Action = NEEDS_DELETE
+			}
+		}
 	}
 
 	for id, o := range output {
@@ -100,23 +107,17 @@ func set_update_flags(input, output map[string]*File, support map[string]bool) {
 		}
 	}
 
-	// dependencies / drafts
+	// delete directories if they are empty
 	for _, i := range input {
-		if i.Type == MARKUP {
-			if i.Page.IsDraft && !config.ShowDrafts { // exclude drafts
-				i.Action = NONE
+		if i.Type == DIR {
+			if len(i.Children) == 0 {
+				i.Action = NEEDS_DELETE
 				continue
 			}
-		}
 
-		if i.Type == DIR {
 			any_remain := false
 
-			print(i.SourcePath, "\n")
-
 			for _, f := range i.Children {
-				print("    ", f.SourcePath, "\n")
-
 				if f.Action != NEEDS_DELETE {
 					any_remain = true
 					break
