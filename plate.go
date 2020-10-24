@@ -60,15 +60,15 @@ func plate_entry_offset(p *Plate, tok *Token) string {
 	if value, ok := p.Tokens[id]; ok {
 		return value
 	}
-	if value, ok := p.Tokens[def]; ok {
-		return value
-	}
-	if value, ok := default_plate.Tokens[id]; ok {
-		return value
+	if tok.Type == HEADING {
+		if value, ok := default_plate.Tokens[id]; ok {
+			return value
+		}
 	}
 	if value, ok := default_plate.Tokens[def]; ok {
 		return value
 	}
+
 	return ""
 }
 
