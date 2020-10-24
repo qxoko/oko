@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"path/filepath"
 	"github.com/robertkrimen/otto"
 )
@@ -67,7 +66,7 @@ func do_single_function(page *Page, name string) string {
 	_, err := vm.Run(file)
 
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 
 	value, err := vm.Get("result")

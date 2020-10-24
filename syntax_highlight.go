@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"bytes"
 	"bufio"
 	"regexp"
@@ -48,7 +47,7 @@ func load_syntax(name string) *Highlighter {
 		err := json.Unmarshal(load_file_bytes(path), &data)
 
 		if err != nil {
-			panic(fmt.Sprintf("failed to parse JSON in %q\nerror: %q", path, err))
+			panic(sub_sprint(`failed to parse JSON in "%s"\nerror: "%s"`, path, err.Error()))
 		}
 	} else {
 		panic(`no such syntax file ` + name)

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 	"encoding/json"
 )
@@ -87,7 +86,8 @@ func load_plate(name string) *Plate {
 	err  := json.Unmarshal(load_file_bytes(path), &plate)
 
 	if err != nil {
-		panic(fmt.Sprintf("failed to parse JSON in %q\nerror: %q", path, err))
+		// @error
+		panic(sub_sprint(`failed to parse JSON in "%s"\nerror: "%s"`, path, err.Error()))
 	}
 
 	// do this in case the child plate has no
@@ -104,7 +104,8 @@ func load_plate(name string) *Plate {
 		err  := json.Unmarshal(load_file_bytes(plate_path(plate.Extends)), &extend)
 
 		if err != nil {
-			panic(fmt.Sprintf("failed to parse JSON in %q\nerror: %q", path, err))
+			// @error
+			panic(sub_sprint(`failed to parse JSON in "%s"\nerror: "%s"`, path, err.Error()))
 		}
 
 		// merge
