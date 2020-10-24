@@ -89,6 +89,10 @@ func sub_content(source, v string) string {
 
 // extremely fast sprintf for %s convention
 func sub_sprint(source string, v ...string) string {
+	if len(v) == 1 {
+		return sub_content(source, v[0])
+	}
+
 	for _, x := range v {
 		source = strings.Replace(source, `%s`, x, 1)
 	}
