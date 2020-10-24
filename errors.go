@@ -11,6 +11,10 @@ func warning(msg string) {
 	Warnings = append(Warnings, msg)
 }
 
+func warning_sprint(msg string, args ...string) {
+	Warnings = append(Warnings, sub_sprint(msg, args...))
+}
+
 func print_warnings() {
 	if len(Warnings) == 0 {
 		return
