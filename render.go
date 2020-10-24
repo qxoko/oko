@@ -176,6 +176,12 @@ func recurse_render(the_page *Page, active_block *Token) string {
 
 				continue
 
+			case TOKEN:
+				if v, ok := plate.Tokens[tok.Text]; ok {
+					content.WriteString(v)
+				}
+				continue
+
 			case MEDIA:
 				content.WriteString(media(tok.Text))
 				continue
